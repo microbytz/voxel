@@ -86,13 +86,13 @@ interface GroupWallMessage {
 }
 
 // Preset Groups/Clans List
-const ROBLOX_GROUPS = [
+const VOXEL_GROUPS = [
   {
     id: "g1",
-    name: "The Robloxian Christians",
+    name: "The Voxelian Christians",
     emblem: "🕊️",
     colorClass: "border-pink-500 text-pink-400 bg-pink-500/10",
-    description: "The largest faith-based community on Roblox. Promoting kindness, unity, and collaborative obby building.",
+    description: "The largest faith-based community on Voxel. Promoting kindness, unity, and collaborative obby building.",
     members: 185600,
     founded: 2011,
     bannerGradient: "from-pink-950/40 to-[#232527]"
@@ -948,7 +948,7 @@ export default function Dashboard({
   // Group Joining Action
   const toggleGroupJoin = (groupId: string) => {
     playFeedPitch(587.33, 0.08, 'sine'); // D5
-    let grp = ROBLOX_GROUPS.find(g => g.id === groupId);
+    let grp = VOXEL_GROUPS.find(g => g.id === groupId);
     if (!grp) return;
 
     if (joinedGroupIds.includes(groupId)) {
@@ -1038,7 +1038,7 @@ export default function Dashboard({
 
   const selectedGroupIdForWall = activeWallGroupId;
   const activeWallList = groupWalls[selectedGroupIdForWall] || [];
-  const selectedGroupObj = ROBLOX_GROUPS.find(g => g.id === selectedGroupIdForWall);
+  const selectedGroupObj = VOXEL_GROUPS.find(g => g.id === selectedGroupIdForWall);
 
   if (activeTab === 'bloxiter') {
     const getPostLikes = (post: BloxiterPost) => {
@@ -1257,7 +1257,7 @@ export default function Dashboard({
             </h4>
             
             <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 space-y-3">
-              {ROBLOX_GROUPS.map((grp) => {
+              {VOXEL_GROUPS.map((grp) => {
                 const isJoined = joinedGroupIds.includes(grp.id);
                 return (
                   <div 
@@ -1308,7 +1308,7 @@ export default function Dashboard({
                   className="bg-black/45 border border-[#393B3D] text-white text-[10px] font-extrabold rounded px-2.5 py-1.5 cursor-pointer focus:outline-none"
                 >
                   {joinedGroupIds.map(gId => {
-                    const grp = ROBLOX_GROUPS.find(g => g.id === gId);
+                    const grp = VOXEL_GROUPS.find(g => g.id === gId);
                     return grp ? <option key={gId} value={gId}>{grp.emblem} {grp.name}</option> : null;
                   })}
                 </select>
@@ -1468,7 +1468,7 @@ export default function Dashboard({
                   {/* Joined Group Badges on our custom profile banner! */}
                   {joinedGroupIds.length > 0 ? (
                     joinedGroupIds.map(gId => {
-                      const grp = ROBLOX_GROUPS.find(g => g.id === gId);
+                      const grp = VOXEL_GROUPS.find(g => g.id === gId);
                       if (!grp) return null;
                       return (
                         <span 

@@ -120,11 +120,11 @@ export default function Sidebar({
               <span>Security & Moderation</span>
             </div>
             <div className="text-[11px] text-gray-500">
-              © 2026 Roblox Web Clone.<br />All resources mock-simulated.
+              © 2026 Voxel Web Clone.<br />All resources mock-simulated.
             </div>
           </div>
         ) : (
-          <div className="flex justify-center text-gray-500 cursor-help" title="Roblox simulated platform">
+          <div className="flex justify-center text-gray-500 cursor-help" title="Voxel simulated platform">
             <HelpCircle size={16} />
           </div>
         )}

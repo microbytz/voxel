@@ -884,7 +884,7 @@ export default function App() {
   const [notifications, setNotifications] = useState<any[]>([
     { id: 1, title: "👋 Welcome back!", text: "Develop, trade, and chat logs are simulated locally inside your browser.", time: "Just now", icon: "✨" },
     { id: 2, title: "💸 Incoming Trade proposal", text: "Shedletsky offered neon pauldrons, check the Trade panel.", time: "5m ago", icon: "🔁" },
-    { id: 3, title: "🚀 Roblox Studio Compiler", text: "Three.js Sandbox environment is compiled and ready for development.", time: "2h ago", icon: "⚙️" }
+    { id: 3, title: "🚀 Voxel Studio Compiler", text: "Three.js Sandbox environment is compiled and ready for development.", time: "2h ago", icon: "⚙️" }
   ]);
 
   // Traffic & Sale Simulator Tick Interval
@@ -1356,10 +1356,18 @@ export default function App() {
         />
       )}
 
-      {/* 5. IMMERSIVE ROBLOX STUDIO IDE WORKSPACE overlay */}
+      {/* 5. IMMERSIVE VOXEL STUDIO IDE WORKSPACE overlay */}
       {runningStudio && (
         <StudioMock 
           onClose={() => setRunningStudio(false)}
+          onLaunchGame={(game) => {
+            setRunningStudio(false);
+            setRunningGame(game);
+            setGames(prev => {
+              const cleaned = prev.filter(g => g.id !== game.id && g.title !== game.title);
+              return [game, ...cleaned];
+            });
+          }}
         />
       )}
 
@@ -1388,6 +1396,14 @@ export default function App() {
             customSetExperiences((prev: any) => {
               if (prev.some((e: any) => e.id === newGame.id)) return prev;
               return [expItem, ...prev];
+            });
+          }}
+          onLaunchGame={(game) => {
+            setRunning2DStudio(false);
+            setRunningGame(game);
+            setGames(prev => {
+              const cleaned = prev.filter(g => g.id !== game.id && g.title !== game.title);
+              return [game, ...cleaned];
             });
           }}
         />

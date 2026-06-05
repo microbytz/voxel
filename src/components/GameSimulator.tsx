@@ -26,6 +26,7 @@ export default function GameSimulator({
   blockedUsers = [],
   onToggleBlock
 }: GameSimulatorProps) {
+  const [showSplash, setShowSplash] = useState<boolean>(true);
   const [launchStep, setLaunchStep] = useState<number>(0);
   const [isPlayingCode, setIsPlayingCode] = useState<boolean>(false);
   const [score, setScore] = useState<number>(0);
@@ -136,11 +137,11 @@ export default function GameSimulator({
   // Chat Auto-Scroll Anchor Ref
   const chatScrollRef = useRef<HTMLDivElement | null>(null);
 
-  // Roblox Chat History (with initial system advice)
+  // Voxel Chat History (with initial system advice)
   const [chatMessages, setChatMessages] = useState<Array<{ id: string; sender: string; text: string; type: 'system' | 'normal' | 'admin'; createdAt?: number }>>([
     { id: 'c1', sender: 'System', text: 'Admin command console active! Type :cmds or click toggles.', type: 'system', createdAt: Date.now() },
     { id: 'c2', sender: 'Builderman', text: 'Welcome to the sandbox! Press / to quickly focus chat.', type: 'normal', createdAt: Date.now() },
-    { id: 'c3', sender: 'Server', text: 'Classic Roblox Commands: :fly, :kill, :ff, :bighead', type: 'system', createdAt: Date.now() }
+    { id: 'c3', sender: 'Server', text: 'Classic Voxel Commands: :fly, :kill, :ff, :bighead', type: 'system', createdAt: Date.now() }
   ]);
   const [activeChatInput, setActiveChatInput] = useState<string>('');
   const [isChatExpanded, setIsChatExpanded] = useState<boolean>(true);
@@ -176,13 +177,13 @@ export default function GameSimulator({
     status: string;
     score: number;
   }>>([
-    { name: 'Builderman', username: '@builderman', avatarColor: 'bg-red-500', isOnline: true, status: 'Busy coding Roblox Studio...', score: 12 },
+    { name: 'Builderman', username: '@builderman', avatarColor: 'bg-red-500', isOnline: true, status: 'Busy coding Voxel Studio...', score: 12 },
     { name: 'ErikCassel', username: '@erik_cassel', avatarColor: 'bg-indigo-600', isOnline: true, status: 'Testing physical brick anchors.', score: 38 },
     { name: 'Shedletsky', username: '@Shedletsky', avatarColor: 'bg-yellow-500', isOnline: true, status: 'Buying fried chicken parts.', score: 25 },
     { name: 'ClassyStud_08', username: '@classy08', avatarColor: 'bg-cyan-500', isOnline: true, status: 'Undefeated crossroads swordsman.', score: 14 }
   ]);
 
-  // Roblox Spatial Voice Chat States
+  // Voxel Spatial Voice Chat States
   const [isMicMuted, setIsMicMuted] = useState<boolean>(true);
   const [isVoiceChatMuted, setIsVoiceChatMuted] = useState<boolean>(false);
   const [activeVoiceSpeaker, setActiveVoiceSpeaker] = useState<string | null>(null);
@@ -283,7 +284,7 @@ export default function GameSimulator({
   // Periodic simulated co-player voice speech loop
   useEffect(() => {
     const speechPhrases = [
-      { sender: 'Builderman', text: "Classic Roblox Crossroads map physics look stunning here! Great work.", type: 'voice' },
+      { sender: 'Builderman', text: "Classic Voxel Crossroads map physics look stunning here! Great work.", type: 'voice' },
       { sender: 'Shedletsky', text: "Who turned off the brick collision? Erik, did you anchor step 3?", type: 'voice' },
       { sender: 'ErikCassel', text: "The voxel geometry is calculated at local 60Hz. Standard stud coordinates are safe.", type: 'voice' },
       { sender: 'ClassyStud_08', text: "Lava steps are tricky! I've collected 3 developer stars so far.", type: 'voice' },
@@ -910,6 +911,47 @@ export default function GameSimulator({
   }, []);
 
   useEffect(() => {
+    if (!game.is2D && game.parts) {
+      const coinParts = game.parts.filter(p => p.specialBehavior === 'candy_coin' || p.name?.toLowerCase().includes('coin'));
+      if (coinParts.length > 0) {
+        stars3DRef.current = coinParts.map(p => ({
+          x: p.x,
+          y: p.y + p.sizeY / 2 + 0.3,
+          z: p.z,
+          collected: false
+        }));
+      } else {
+        // Find normal platforms to place some floating stars on
+        const normalParts = game.parts.filter(p => !p.name?.toLowerCase().includes('spawn') && p.y > 0);
+        if (normalParts.length > 0) {
+          stars3DRef.current = normalParts.slice(0, 5).map(p => ({
+            x: p.x,
+            y: p.y + p.sizeY / 2 + 1.2,
+            z: p.z,
+            collected: false
+          }));
+        }
+      }
+    } else if (game.is2D && game.sprites) {
+      const starSprites = game.sprites.filter(s => s.name?.toLowerCase().includes('star') || s.name?.toLowerCase().includes('coin') || s.emoji === '⭐');
+      if (starSprites.length > 0) {
+        stars2DRef.current = starSprites.map(s => ({
+          x: s.x + 320, // offset coordinates to match simulator's coordinate space
+          y: -s.y + 180,
+          collected: false
+        }));
+      } else {
+        // Fallback layout based on platforms
+        stars2DRef.current = [
+          { x: 100, y: 270, collected: false },
+          { x: 320, y: 230, collected: false },
+          { x: 490, y: 170, collected: false }
+        ];
+      }
+    }
+  }, [game]);
+
+  useEffect(() => {
     if (isPlayingCode) {
       // Auto expire/hide controls overlay after 8 seconds of starting
       const timer = setTimeout(() => {
@@ -1006,7 +1048,7 @@ export default function GameSimulator({
 
   const handleJumpStart = (e: React.TouchEvent<HTMLButtonElement> | React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
-    // In Roblox, jumping activates jump key only. Direction walk is handled by the joystick!
+    // In Voxel, jumping activates jump key only. Direction walk is handled by the joystick!
     keys.current[' '] = true;
   };
 
@@ -1048,17 +1090,19 @@ export default function GameSimulator({
   ];
 
   useEffect(() => {
+    if (showSplash) return;
+
     if (launchStep < launchMessages.length) {
       const timer = setTimeout(() => {
         setLaunchStep(prev => prev + 1);
         playSound(400 + launchStep * 100, 0.1, 'triangle');
-      }, 900);
+      }, 750);
       return () => clearTimeout(timer);
     } else if (!isPlayingCode) {
       setIsPlayingCode(true);
       playSound(523.25, 0.35, 'sine'); // C5 tone on successful launch
     }
-  }, [launchStep]);
+  }, [launchStep, showSplash]);
 
   // Keys state tracker
   const keys = useRef<{ [key: string]: boolean }>({});
@@ -1187,21 +1231,39 @@ export default function GameSimulator({
     if (!game.is2D) {
       const player3D = player3DRef.current;
 
-      // 3D Blocks layout: static steps
-      const blockPlatforms = [
-        { x: 0, y: -0.6, z: 0, w: 7, h: 0.4, d: 7, color: '#10b981', label: 'Spawn Pad' },
-        { x: 0, y: 0.1, z: 7, w: 3, h: 0.4, d: 3, color: '#3b82f6', label: 'Step 1' },
-        { x: 3.2, y: 0.8, z: 12, w: 3, h: 0.4, d: 3, color: '#f59e0b', label: 'Step 2' },
-        { x: -3.2, y: 1.5, z: 17, w: 3, h: 0.4, d: 3, color: '#8b5cf6', label: 'Step 3' },
-        { x: 0, y: 2.2, z: 23, w: 3, h: 0.4, d: 3, color: '#22d3ee', label: 'Step 4' },
-        { x: 3.5, y: 2.9, z: 28, w: 3, h: 0.4, d: 3, color: '#f43f5e', label: 'Step 5' },
-        { x: 0, y: 3.6, z: 34, w: 6, h: 0.4, d: 6, color: '#ec4899', isWinPad: true, label: 'Victory Pad' }
+      // 3D Blocks layout: static steps or from game.parts if provided
+      const blockPlatforms = game.parts ? game.parts.map(p => ({
+        x: p.x,
+        y: p.y - 1.0,
+        z: -p.z * 1.0,
+        w: p.sizeX,
+        h: p.sizeY,
+        d: p.sizeZ,
+        color: p.color,
+        label: p.name,
+        specialBehavior: p.specialBehavior as string | undefined,
+        isWinPad: p.specialBehavior === 'dimension_rift_portal' || p.name?.toLowerCase().includes('finish') || p.name?.toLowerCase().includes('victory') || p.name?.toLowerCase().includes('portal')
+      })) : [
+        { x: 0, y: -0.6, z: 0, w: 7, h: 0.4, d: 7, color: '#10b981', label: 'Spawn Pad', specialBehavior: undefined as string | undefined, isWinPad: false },
+        { x: 0, y: 0.1, z: 7, w: 3, h: 0.4, d: 3, color: '#3b82f6', label: 'Step 1', specialBehavior: undefined as string | undefined, isWinPad: false },
+        { x: 3.2, y: 0.8, z: 12, w: 3, h: 0.4, d: 3, color: '#f59e0b', label: 'Step 2', specialBehavior: undefined as string | undefined, isWinPad: false },
+        { x: -3.2, y: 1.5, z: 17, w: 3, h: 0.4, d: 3, color: '#8b5cf6', label: 'Step 3', specialBehavior: undefined as string | undefined, isWinPad: false },
+        { x: 0, y: 2.2, z: 23, w: 3, h: 0.4, d: 3, color: '#22d3ee', label: 'Step 4', specialBehavior: undefined as string | undefined, isWinPad: false },
+        { x: 3.5, y: 2.9, z: 28, w: 3, h: 0.4, d: 3, color: '#f43f5e', label: 'Step 5', specialBehavior: undefined as string | undefined, isWinPad: false },
+        { x: 0, y: 3.6, z: 34, w: 6, h: 0.4, d: 6, color: '#ec4899', isWinPad: true, label: 'Victory Pad', specialBehavior: undefined as string | undefined }
       ];
 
       const reset3DLevel = () => {
-        player3D.px = 0;
-        player3D.py = 0.6;
-        player3D.pz = 0;
+        const spawnPlat = blockPlatforms.find(p => p.specialBehavior === 'respawn_star' || p.label?.toLowerCase().includes('spawn'));
+        if (spawnPlat) {
+          player3D.px = spawnPlat.x;
+          player3D.py = spawnPlat.y + spawnPlat.h / 2 + 0.5;
+          player3D.pz = spawnPlat.z;
+        } else {
+          player3D.px = blockPlatforms[0]?.x ?? 0;
+          player3D.py = (blockPlatforms[0]?.y ?? 0) + (blockPlatforms[0]?.h ?? 0.4) / 2 + 0.5;
+          player3D.pz = blockPlatforms[0]?.z ?? 0;
+        }
         player3D.vx = 0;
         player3D.vy = 0;
         player3D.vz = 0;
@@ -1345,7 +1407,26 @@ export default function GameSimulator({
                 player3D.vy = 0;
                 player3D.isGrounded = true;
 
-                if (plat.isWinPad) {
+                if (plat.specialBehavior === 'lava_melt' || plat.label?.toLowerCase().includes('lava')) {
+                  if (!adminRef.current.ff) {
+                    player3D.py = -10; // Trigger fall death immediately
+                    playSound(110, 0.45, 'sawtooth');
+                  }
+                } else if (plat.specialBehavior === 'spiky_ouch' || plat.label?.toLowerCase().includes('spike')) {
+                  if (!adminRef.current.ff) {
+                    player3D.vy = 0.15; // Bounce player slightly
+                    player3D.isGrounded = false;
+                    playSound(150, 0.15, 'sawtooth');
+                  }
+                } else if (plat.specialBehavior === 'bounce_pad' || plat.label?.toLowerCase().includes('spring') || plat.label?.toLowerCase().includes('trampoline')) {
+                  player3D.vy = 0.28;
+                  player3D.isGrounded = false;
+                  playSound(600, 0.25, 'sine');
+                } else if (plat.specialBehavior === 'speed_boost' || plat.label?.toLowerCase().includes('speed')) {
+                  player3D.vx *= 2.0;
+                  player3D.vz *= 2.0;
+                  playSound(880, 0.15, 'sine');
+                } else if (plat.isWinPad) {
                   isStageCleared = true;
                   playSound(1046, 0.5, 'sine');
                 }
@@ -1897,7 +1978,18 @@ export default function GameSimulator({
       const player = player2DRef.current;
 
       // Platform objects (Simple Obby levels)
-      const platforms = [
+      const platforms = game.sprites ? [
+        { x: 0, y: 320, width: 220, height: 40, item: 'ground' },
+        ...game.sprites
+          .filter(s => s.name?.toLowerCase().includes('platform') || s.name?.toLowerCase().includes('ground') || s.name?.toLowerCase().includes('solid') || s.name?.toLowerCase().includes('block'))
+          .map(s => ({
+            x: (s.x + canvas.width / 2) - 35,
+            y: (-s.y + canvas.height / 2) - 10,
+            width: 70,
+            height: 20,
+            item: s.name?.toLowerCase().includes('ground') ? 'ground' : 'platform'
+          }))
+      ] : [
         { x: 0, y: 320, width: 200, height: 40, item: 'ground' },
         { x: 260, y: 280, width: 120, height: 15, item: 'platform' },
         { x: 440, y: 230, width: 100, height: 15, item: 'platform' },
@@ -1906,7 +1998,16 @@ export default function GameSimulator({
       ];
 
       // Hazards (lava fields)
-      const hazards = [
+      const hazards = game.sprites ? [
+        ...game.sprites
+          .filter(s => s.name?.toLowerCase().includes('lava') || s.name?.toLowerCase().includes('hazard') || s.name?.toLowerCase().includes('laser'))
+          .map(s => ({
+            x: (s.x + canvas.width / 2) - 35,
+            y: (-s.y + canvas.height / 2) + 5,
+            width: 70,
+            height: 15
+          }))
+      ] : [
         { x: 200, y: 345, width: 440, height: 15 } // Base lava trap
       ];
 
@@ -2208,6 +2309,45 @@ export default function GameSimulator({
           ctx.fillRect(hz.x, hz.y, hz.width, 2);
         });
 
+        // Render custom sprites if available
+        if (game.sprites) {
+          game.sprites.forEach(sprite => {
+            const rx = sprite.x + canvas.width / 2;
+            const ry = -sprite.y + canvas.height / 2;
+            
+            // Render custom pixels if available
+            if (sprite.customPixels && sprite.customPixels.length > 0) {
+              const pixelSize = Math.max(1, Math.round(24 / sprite.customPixels.length));
+              sprite.customPixels.forEach((row, rIdx) => {
+                row.forEach((pixelColor, cIdx) => {
+                  if (pixelColor && pixelColor !== 'transparent') {
+                    ctx.fillStyle = pixelColor;
+                    ctx.fillRect(
+                      rx - 12 + cIdx * pixelSize,
+                      ry - 12 + rIdx * pixelSize,
+                      pixelSize,
+                      pixelSize
+                    );
+                  }
+                });
+              });
+            } else {
+              // Otherwise render as emoji
+              ctx.fillStyle = sprite.color || '#3b82f6';
+              ctx.font = '20px Arial';
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+              ctx.fillText(sprite.emoji || '👾', rx, ry);
+            }
+            
+            // Draw small label
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+            ctx.font = 'bold 8px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText(sprite.name, rx, ry - 18);
+          });
+        }
+
         // Render stars
         stars2DRef.current.forEach(star => {
           if (!star.collected) {
@@ -2340,9 +2480,80 @@ export default function GameSimulator({
   }, [isPlayingCode, skinColor, avatarColor, activeHats, cameraView]);
 
   return (
-    <div className="fixed inset-0 bg-[#191B1D]/98 z-50 flex items-center justify-center p-4">
-      {/* 1. INITIAL SHIELD AND PROGRAM BOOT-LOADER */}
-      {launchStep < launchMessages.length ? (
+    <div className="fixed inset-0 bg-[#161719]/98 z-50 flex items-center justify-center p-4">
+      {/* 1. INITIAL SHIELD, PROGRAM Splash screen lobby AND BOOT-LOADER */}
+      {showSplash ? (
+        <div className="bg-[#1f2022] border-2 border-[#ffb347]/25 rounded-2xl w-full max-w-xl overflow-hidden shadow-[0_10px_50px_rgba(0,0,0,0.85)] transform transition-transform duration-300 animate-zoomIn flex flex-col font-sans">
+          {/* Top Banner accent */}
+          <div className="h-32 bg-gradient-to-br from-[#1e1b4b] via-[#311c87] to-zinc-900 px-6 py-4 flex flex-col justify-end relative overflow-hidden">
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-cyan-400/10 via-purple-500/10 to-transparent"></div>
+            {/* Genre Badge */}
+            <span className="absolute top-4 right-4 bg-purple-500/20 border border-purple-400/40 text-purple-200 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full text-center">
+              🏷️ {game.category || 'Sandbox'}
+            </span>
+            <h2 className="font-display font-black text-2xl text-white tracking-wide truncate uppercase drop-shadow">
+              {game.title}
+            </h2>
+          </div>
+
+          {/* Core metadata panel */}
+          <div className="p-6 space-y-5 bg-[#1a1b1d] border-b border-[#313335]">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <span className="text-[10px] uppercase font-bold text-zinc-500 block">Developer Name</span>
+                <span className="text-sm font-semibold text-zinc-200 font-mono">
+                  👤 {game.creator || 'Voxel Developer'}
+                </span>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase font-bold text-zinc-500 block">Date Created</span>
+                <span className="text-sm font-semibold text-zinc-200 font-mono">
+                  📅 {game.createdAt || 'Just now'}
+                </span>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase font-bold text-zinc-500 block">Server Genre</span>
+                <span className="text-sm font-semibold text-zinc-200 font-mono">
+                  🎮 {game.category || 'Obby Adventure'}
+                </span>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase font-bold text-zinc-500 block">Experience Size</span>
+                <span className="text-sm font-semibold text-zinc-200 font-mono">
+                  💾 {game.sizeMB || '4.2'} MB
+                </span>
+              </div>
+            </div>
+
+            <div className="border-t border-[#313335] pt-4">
+              <span className="text-[10px] uppercase font-bold text-zinc-500 block mb-1">Description</span>
+              <p className="text-xs text-zinc-300 leading-relaxed max-h-24 overflow-y-auto scrollbar-thin">
+                {game.description || 'Welcome to this custom sandbox experience! Explore, complete challenges, and hang out with other voxel players in this multiplayer-ready blocky world.'}
+              </p>
+            </div>
+          </div>
+
+          {/* Bottom actions cover */}
+          <div className="p-5 bg-[#121315] flex justify-between items-center px-6">
+            <button
+              onClick={onClose}
+              className="p-2.5 px-4 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-extrabold text-xs uppercase tracking-wider rounded-lg transition-all cursor-pointer border border-[#313335]"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                playSound(650, 0.15, 'sine');
+                setTimeout(() => playSound(880, 0.25, 'sine'), 100);
+                setShowSplash(false);
+              }}
+              className="p-2.5 px-6 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-zinc-950 font-black text-xs uppercase tracking-wider rounded-lg transition-all cursor-pointer shadow-[0_0_20px_rgba(16,185,129,0.35)] flex items-center gap-2 animate-pulse hover:animate-none"
+            >
+              🚀 Launch Game Client
+            </button>
+          </div>
+        </div>
+      ) : launchStep < launchMessages.length ? (
         <div className="bg-[#232527] border border-[#393B3D] rounded w-full max-w-md p-6 relative text-center space-y-6">
           <div className="flex flex-col items-center">
             {/* Logo slanted blocks loader animate */}
@@ -2351,7 +2562,7 @@ export default function GameSimulator({
             </div>
             
             <h3 className="font-display font-black text-xl text-white tracking-wide uppercase">
-              Roblox Game Client
+              Voxel Game Client
             </h3>
             <p className="text-xs text-zinc-400 font-semibold font-mono animate-pulse">
               BOOTING RECT-SANDBOX CONTAINER
@@ -2372,7 +2583,7 @@ export default function GameSimulator({
           </div>
 
           <div className="text-[10px] text-gray-500 font-mono border-t border-[#393B3D] pt-3">
-            Roblox Client Process ID: <span className="text-gray-300 font-bold">#RX-{Math.floor(Math.random() * 8999) + 1000}</span>
+            Voxel Client Process ID: <span className="text-gray-300 font-bold">#RX-{Math.floor(Math.random() * 8999) + 1000}</span>
           </div>
         </div>
       ) : (
@@ -2474,7 +2685,7 @@ export default function GameSimulator({
                       Connection Terminated
                     </h3>
                     <p className="text-[9px] font-mono text-zinc-500 uppercase tracking-wider">
-                      Roblox Security & Moderation Services
+                      Voxel Security & Moderation Services
                     </p>
                   </div>
 
@@ -2507,7 +2718,7 @@ export default function GameSimulator({
                   {!isSelfAdminBanned && (
                     <div className="w-full border border-white/5 bg-black/25 rounded-lg p-3 text-left space-y-2">
                       <span className="text-cyan-400 font-mono text-[9px] uppercase tracking-wider font-bold block">
-                        🛡️ Roblox Client Appeals Board
+                        🛡️ Voxel Client Appeals Board
                       </span>
 
                       {(() => {
@@ -2751,7 +2962,7 @@ export default function GameSimulator({
               </div>
             )}
 
-            {/* Classic Roblox Chat HUD (Top Left) */}
+            {/* Classic Voxel Chat HUD (Top Left) */}
             <div className="absolute top-3 left-3 z-30 flex flex-col gap-1 pointer-events-auto max-w-[240px] sm:max-w-[280px]">
               {/* Toggle Chat Speech Bubble Button */}
               <button
@@ -2765,7 +2976,7 @@ export default function GameSimulator({
                     ? 'bg-black/60 border-white/20 text-white' 
                     : 'bg-black/35 hover:bg-black/55 border-white/10 text-zinc-300'
                 }`}
-                title="Toggle Roblox Chat History"
+                title="Toggle Voxel Chat History"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
@@ -3347,7 +3558,7 @@ export default function GameSimulator({
                 </div>
               )}
 
-              {/* Classic Roblox Player Leaderboard */}
+              {/* Classic Voxel Player Leaderboard */}
               {showLeaderboard && (
                 <div className="w-52 bg-[#16171a]/85 backdrop-blur-md border border-[#393B3D]/80 rounded-lg p-2.5 flex flex-col gap-1.5 shadow-2xl select-none text-left relative animate-fadeIn">
                   <div className="flex justify-between items-center px-1 border-b border-white/5 pb-1 select-none">
@@ -3571,7 +3782,7 @@ export default function GameSimulator({
                   <div className="bg-amber-500/5 border border-amber-500/25 rounded-md p-3 text-amber-300 flex gap-2.5">
                     <Info size={16} className="shrink-0 mt-0.5 text-amber-400" />
                     <p className="leading-relaxed font-sans text-[10px]">
-                      <strong>System Directive:</strong> In accordance with Roblox Safety regulations, completing this report issues an immediate platform warning. Players accumulating reports from <strong>more than 6 different people</strong> across different games are auto-permabanned.
+                      <strong>System Directive:</strong> In accordance with Voxel Safety regulations, completing this report issues an immediate platform warning. Players accumulating reports from <strong>more than 6 different people</strong> across different games are auto-permabanned.
                     </p>
                   </div>
 

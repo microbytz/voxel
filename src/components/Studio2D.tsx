@@ -81,9 +81,10 @@ interface Studio2DProps {
     createdAt: string;
     is2D: boolean;
   }) => void;
+  onLaunchGame?: (game: any) => void;
 }
 
-export default function Studio2D({ onClose, onPublish }: Studio2DProps) {
+export default function Studio2D({ onClose, onPublish, onLaunchGame }: Studio2DProps) {
   // Preset list of available Scratch-like block blueprints
   const TOOLBOX_BLOCKS: BlockDefinition[] = [
     // Events
@@ -4371,6 +4372,34 @@ export default function Studio2D({ onClose, onPublish }: Studio2DProps) {
           >
             <Sparkles size={11} className="fill-zinc-950" /> <span className="hidden xxs:inline">Publish AST Game</span><span className="xxs:hidden">Publish</span>
           </button>
+
+          {onLaunchGame && (
+            <button
+              onClick={() => {
+                playWebBeep(650, 0.25, 'sine');
+                onLaunchGame({
+                  id: 'voxel-2d-active-arcade',
+                  title: 'My Custom 2D Arcade Project',
+                  thumbnail: 'from-cyan-600 to-blue-850 border-cyan-400',
+                  upvoteRatio: 100,
+                  activePlayers: 1,
+                  creator: 'GamerProX',
+                  description: 'An interactive 2D arcade project launched right from the No-Code Editor!',
+                  category: 'Action',
+                  visits: 12,
+                  createdAt: new Date().toISOString().split('T')[0],
+                  is2D: true,
+                  isShort: false,
+                  sprites: sprites,
+                  backdrop: currentBackdrop
+                });
+              }}
+              className="p-1 px-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-zinc-950 font-black rounded transition-all cursor-pointer text-[10px] sm:text-xs flex items-center gap-1 shadow-[0_0_12px_rgba(16,185,129,0.35)] animate-pulse hover:animate-none select-none"
+              title="Launch this custom 2D program inside the interactive multiplayer client!"
+            >
+              🚀 <span>Launch Game</span>
+            </button>
+          )}
 
           {/* Close Editor Studio */}
           <button

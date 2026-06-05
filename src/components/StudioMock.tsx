@@ -55,6 +55,7 @@ interface Part {
 
 interface StudioMockProps {
   onClose: () => void;
+  onLaunchGame?: (game: any) => void;
 }
 
 // Specialty Block configs - kids friendly metadata
@@ -358,7 +359,7 @@ const floodFillGrid = (grid: string[][], startR: number, startC: number, targetC
   return nextGrid;
 };
 
-export default function StudioMock({ onClose }: StudioMockProps) {
+export default function StudioMock({ onClose, onLaunchGame }: StudioMockProps) {
   const [booting, setBooting] = useState(true);
   const [bootLog, setBootLog] = useState("");
   const [bootStep, setBootStep] = useState(0);
@@ -859,7 +860,7 @@ export default function StudioMock({ onClose }: StudioMockProps) {
   const [showScriptEditor, setShowScriptEditor] = useState<boolean>(false);
   const [scriptEditorTab, setScriptEditorTab] = useState<'junior' | 'pro'>('junior');
   const [gameLogs, setGameLogs] = useState<string[]>([
-    '🚀 Roblox Event Console active. Ready for simulation...',
+    '🚀 Voxel Event Console active. Ready for simulation...',
     '👉 Touch or interact with scripted parts to trigger custom logic!'
   ]);
   const [activeDialogue, setActiveDialogue] = useState<{ speaker: string; text: string } | null>(null);
@@ -1330,7 +1331,7 @@ export default function StudioMock({ onClose }: StudioMockProps) {
     "Injecting asset directories into local scene graph...",
     "Compiling StarterGui script listeners...",
     "Generating base plate mesh structures...",
-    "Connecting Roblox Developer Service sockets... Online!",
+    "Connecting Voxel Developer Service sockets... Online!",
     "Ready for logic expansion!"
   ];
 
@@ -2367,13 +2368,13 @@ export default function StudioMock({ onClose }: StudioMockProps) {
       {!isImmersivePlayTest && (
         <div className="h-14 bg-[#232527] border-b border-[#393B3D] flex flex-col justify-between px-3 overflow-hidden">
           {/* Ribbon Actions */}
-          <div className="flex justify-between items-center h-full gap-4 overflow-x-auto scrollbar-none py-1 truncate">
+          <div className="flex items-center justify-between h-full gap-4 overflow-x-auto py-1 scrollbar-thin scrollbar-thumb-zinc-700/80 scrollbar-track-transparent">
           <div className="flex items-center gap-2 shrink-0">
             {/* Logo slanted icon block */}
-            <div className="w-6 h-6 bg-zinc-700 border border-zinc-600 rounded flex items-center justify-center font-bold text-xs shadow shrink-0">
-              R
+            <div className="w-6 h-6 bg-zinc-700 border border-zinc-600 rounded flex items-center justify-center font-bold text-xs shadow shrink-0 text-white">
+              V
             </div>
-            <span className="text-xs font-bold text-gray-300 font-display hidden sm:inline truncate">Roblox Studio (WebGL Mock)</span>
+            <span className="text-xs font-bold text-gray-300 font-display hidden sm:inline truncate">Voxel Studio (WebGL Mock)</span>
           </div>
 
           {/* EDITOR TOOLS MODE */}
@@ -2557,6 +2558,33 @@ export default function StudioMock({ onClose }: StudioMockProps) {
               <span>Start Test ✅</span>
             </button>
           </div>
+
+          {onLaunchGame && (
+            <button
+              onClick={() => {
+                triggerBeep(650, 0.25);
+                onLaunchGame({
+                  id: 'voxel-3d-active-place',
+                  title: newModelName || 'My Custom Voxel 3D World',
+                  thumbnail: 'from-amber-500 via-orange-600 to-red-600',
+                  upvoteRatio: 100,
+                  activePlayers: 1,
+                  creator: 'GamerProX',
+                  description: 'A custom, fully-simulated 3D blockbuster adventure built inside Voxel Studio!',
+                  category: 'Obby',
+                  visits: 12,
+                  createdAt: new Date().toISOString().split('T')[0],
+                  is2D: false,
+                  isShort: false,
+                  parts: parts
+                });
+              }}
+              className="p-1 px-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-zinc-950 font-black text-[10px] uppercase tracking-wider rounded-md transition-all cursor-pointer shadow-[0_0_15px_rgba(16,185,129,0.35)] flex items-center gap-1.5 shrink-0 select-none animate-pulse hover:animate-none"
+              title="Launch this custom world in the high-fidelity Multi-player Game Client!"
+            >
+              🚀 <span>Launch Game</span>
+            </button>
+          )}
 
           {/* 3D MODEL SAVE/LOAD ASSET LIBRARY BUTTON */}
           <button

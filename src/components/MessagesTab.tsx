@@ -35,7 +35,7 @@ export default function MessagesTab({
   const [replyText, setReplyText] = useState("");
   const [isChatActiveMobile, setIsChatActiveMobile] = useState<boolean>(false);
 
-  // --- ROBLOX SPATIAL AUDIO CALL SIMULATOR ---
+  // --- VOXEL SPATIAL AUDIO CALL SIMULATOR ---
   const [activeCall, setActiveCall] = useState<{
     status: 'dialing' | 'connected' | 'ended';
     senderName: string;
@@ -172,8 +172,8 @@ export default function MessagesTab({
     });
 
     setCallNotes([
-      { sender: 'System Operator', text: `🔄 Establishing Roblox Secure WebRTC handshake with ${chat.sender}...`, time: 'Now' },
-      { sender: 'System Operator', text: `📞 Ringing ${chat.sender}'s Roblox client...`, time: 'Now' }
+      { sender: 'System Operator', text: `🔄 Establishing Voxel Secure WebRTC handshake with ${chat.sender}...`, time: 'Now' },
+      { sender: 'System Operator', text: `📞 Ringing ${chat.sender}'s Voxel client...`, time: 'Now' }
     ]);
 
     const ringInterval = setInterval(() => {
@@ -209,11 +209,11 @@ export default function MessagesTab({
   const getNPCGreeting = (sender: string) => {
     switch (sender) {
       case 'Builderman':
-        return "Greetings developer! You caught me working right in my Roblox Studio sandbox. What features are you compiling today?";
+        return "Greetings developer! You caught me working right in my Voxel Studio sandbox. What features are you compiling today?";
       case 'Shedletsky':
         return "Hahaha! What's up gamer! I am currently dining on some crisp country fried chicken. What trade are we discussing?";
       case 'David.Baszucki':
-        return "Hello colleague. It's a fantastic day to build. How can the core Roblox systems help you prototype today?";
+        return "Hello colleague. It's a fantastic day to build. How can the core Voxel systems help you prototype today?";
       default:
         return "Hey! Awesome connection. Let's voice chat. What have you been building lately?";
     }
@@ -252,7 +252,7 @@ export default function MessagesTab({
   const getCallNPCResponse = (npc: string, tag: string): string => {
     switch (npc) {
       case 'Builderman':
-        if (tag === 'server') return "Certainly! Each place file automatically spins up a real-time multiplayer server node. Just click 'Publish' inside the Roblox Studio engine, and our telemetry handler takes care of matchmaking instantly!";
+        if (tag === 'server') return "Certainly! Each place file automatically spins up a real-time multiplayer server node. Just click 'Publish' inside the Voxel Studio engine, and our telemetry handler takes care of matchmaking instantly!";
         if (tag === 'trade') return "Trading is managed by the economy system. Shedletsky holds some legendary limited hats like the Dominus series, check his trade hub queue.";
         if (tag === 'crossroads') return "Crossroads is a pristine benchmark! I'd love to join you, but Erik and I are busy patching sound spatializer layers. Good luck out there!";
         if (tag === 'erik') return "Erik Cassel was my co-founder and a brilliant system architect. His foundational physics brick anchor code is still what holds all our simulated worlds together today.";
@@ -286,7 +286,7 @@ export default function MessagesTab({
   };
 
   const CALL_PROMPTS = [
-    { text: "Can you help me host a Roblox server?", tag: "server" },
+    { text: "Can you help me host a Voxel server?", tag: "server" },
     { text: "Are there any rare trade items in your inventory?", tag: "trade" },
     { text: "Want to team up for crossroads matches?", tag: "crossroads" },
     { text: "Who is Erik Cassel?", tag: "erik" },
@@ -350,7 +350,7 @@ export default function MessagesTab({
   const getMockReply = (sender: string): string => {
     switch(sender) {
       case 'Builderman':
-        return "That sounds epic! I'm adding your suggestions to the official API guidelines. Keep experimenting on Roblox Studio!";
+        return "That sounds epic! I'm adding your suggestions to the official API guidelines. Keep experimenting on Voxel Studio!";
       case 'Shedletsky':
         return "Haha nice one! Let me review my trade queue and check if I can ship over that Fedora to you.";
       case 'David.Baszucki':
@@ -507,7 +507,7 @@ export default function MessagesTab({
                     <div className="flex items-center justify-between text-[9px] md:text-[10px] uppercase font-mono tracking-wider font-extrabold pb-2 border-b border-white/5 relative z-10 select-none">
                       <span className="text-emerald-400 flex items-center gap-1.5 animate-pulse">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
-                        Roblox Spatial Voice Stream
+                        Voxel Spatial Voice Stream
                       </span>
                       <span className="text-zinc-500 font-bold">Secure WebRTC Handshake</span>
                     </div>

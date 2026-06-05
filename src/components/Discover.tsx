@@ -51,7 +51,7 @@ export default function Discover({
     };
   }, []);
   
-  // Roblox Categories
+  // Voxel Categories
   const categories = ['All', 'Action', 'Roleplay', 'Survival', 'Obby', 'Simulation'];
 
   // Combine parent search and dropdown filter

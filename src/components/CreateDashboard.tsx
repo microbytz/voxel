@@ -364,7 +364,7 @@ export default function CreateDashboard({
     if (points < 300) return { name: "Silver Scripter 📜", color: "text-gray-300", bg: "bg-gray-500/10", border: "border-gray-500/20", limit: 300 };
     if (points < 700) return { name: "Gold Game-Director 🎬", color: "text-yellow-400", bg: "bg-yellow-500/10", border: "border-yellow-500/20", limit: 700 };
     if (points < 1500) return { name: "Master Architect 🏰", color: "text-indigo-400", bg: "bg-indigo-500/10", border: "border-indigo-500/20", limit: 1500 };
-    return { name: "Roblox Creator Legend 👑", color: "text-cyan-400 font-extrabold animate-pulse", bg: "bg-cyan-500/10", border: "border-cyan-500/30", limit: 9999 };
+    return { name: "Voxel Creator Legend 👑", color: "text-cyan-400 font-extrabold animate-pulse", bg: "bg-cyan-500/10", border: "border-cyan-500/30", limit: 9999 };
   };
 
   const currentRank = getRankName(creatorPoints);
@@ -937,7 +937,7 @@ export default function CreateDashboard({
                 <span className="text-xl font-bold text-white flex items-center justify-center md:justify-start gap-1">
                   10,000 Dev R$ <ArrowUpRight className="text-gray-500" size={16} /> <span className="text-[#34d399] font-black">$35.00 USD</span>
                 </span>
-                <span className="text-[9px] text-[#34d399] block font-mono">Immediate mock bank transfers backed by Roblox Escrow.</span>
+                <span className="text-[9px] text-[#34d399] block font-mono">Immediate mock bank transfers backed by Voxel Escrow.</span>
               </div>
               <div className="bg-[#1d1f22] border border-[#393B3D] p-3 rounded-lg text-center shrink-0">
                 <span className="text-[9px] block text-gray-405 uppercase font-bold tracking-wider mb-0.5">Developer Balance</span>

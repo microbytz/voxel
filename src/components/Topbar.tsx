@@ -85,41 +85,25 @@ export default function Topbar({
           <Menu size={20} />
         </button>
 
-        {/* Brand Logo - Accurate Slanted Cube Icon + Roblox text */}
+        {/* Brand Logo - Beautiful Realistic Bird Icon + Voxel text */}
         <div 
           onClick={() => setActiveTab('home')}
           className="flex items-center gap-2 cursor-pointer group"
         >
-          {/* Slanted Square with square hole */}
-          <div className="relative w-7 h-7 bg-white rounded-xs transform rotate-12 flex items-center justify-center shadow-lg group-hover:bg-gray-200 transition-colors">
-            <div className="w-2.5 h-2.5 bg-[#191B1D] rounded-xs" />
+          {/* Realistic but small bird shape - flying swallow silhouette */}
+          <div className="relative w-8 h-8 flex items-center justify-center transition-all duration-300 group-hover:scale-110">
+            <svg 
+              viewBox="0 0 24 24" 
+              className="w-7 h-7 text-white fill-current drop-shadow-[0_2px_4px_rgba(0,0,0,0.4)]"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path d="M12 2C11.5 3.5 10 5.5 8 6C6 6.5 4 6 2 5C4 7 6.5 8.5 9 9C8 11 6.5 13 4 14.5C6.5 14 9 12.5 11 11C11.5 13 12 16 12 19C12 16 12.5 13 13 11C15 12.5 17.5 14 20 14.5C17.5 13 16 11 15 9C17.5 8.5 20 7 22 5C20 6 18 6.5 16 6C14 5.5 12.5 3.5 12 2Z" />
+            </svg>
           </div>
           <span className="font-display font-extrabold text-lg tracking-wider text-white hidden sm:inline-block">
-            ROBLOX
+            VOXEL
           </span>
         </div>
-
-        {/* Scrollable Navigation Shortcuts - Always accessible & swipeable */}
-        <nav className="flex items-center gap-1 xl:gap-1.5 ml-2 md:ml-4 overflow-x-auto whitespace-nowrap scrollbar-none shrink-0 max-w-[130px] sm:max-w-xs md:max-w-sm lg:max-w-none">
-          {[
-            { id: 'discover', label: 'Discover' },
-            { id: 'short-games', label: 'Short Games ⚡' },
-            { id: 'avatar-shop', label: 'Avatar Shop' },
-            { id: 'create', label: 'Create' }
-          ].map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              className={`px-2 md:px-3 py-1 text-xs md:text-sm font-semibold rounded-md transition-all cursor-pointer shrink-0 ${
-                activeTab === item.id 
-                  ? 'bg-[#393B3D] text-white shadow' 
-                  : 'text-gray-300 hover:text-white hover:bg-[#323436]'
-              }`}
-            >
-              {item.label}
-            </button>
-          ))}
-        </nav>
       </div>
 
       {/* Central Search Bar */}
@@ -360,7 +344,7 @@ export default function Topbar({
 
               <div className="border-t border-[#393B3D] my-1"></div>
               <div className="px-3 py-1.5 text-[10px] text-gray-500 font-mono">
-                Roblox Portal v1.02
+                Voxel Portal v1.02
               </div>
             </div>
           )}

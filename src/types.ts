@@ -14,6 +14,9 @@ export interface Game {
   sizeMB?: number; // Size in MB
   rating?: number; // Rating out of 5 stars
   ratingCount?: number; // Count of user ratings
+  parts?: any[]; // Optional 3D custom parts layout
+  sprites?: any[]; // Optional 2D custom sprites level
+  backdrop?: string; // Optional custom selected background theme
 }
 
 export interface Friend {

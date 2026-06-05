@@ -1,6 +1,6 @@
 {
-  "name": "Roblox Web Dashboard",
-  "description": "A high-fidelity Roblox player dashboard and creator studio dashboard built in React and Tailwind CSS.",
+  "name": "Voxel Web Dashboard",
+  "description": "A high-fidelity Voxel player dashboard and creator studio dashboard built in React and Tailwind CSS.",
   "requestFramePermissions": ["microphone", "display-capture"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

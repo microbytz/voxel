@@ -137,7 +137,7 @@ export default function AvatarCustomizer({
   const [redeemedCodes, setRedeemedCodes] = useState<string[]>([]);
   const [selectedShopItem, setSelectedShopItem] = useState<ShopItem | null>(null);
 
-  // States for Roblox UGC Custom Designer Lab
+  // States for Voxel UGC Custom Designer Lab
   const [ugcItemName, setUgcItemName] = useState("");
   const [ugcItemDesc, setUgcItemDesc] = useState("");
   const [ugcItemCategory, setUgcItemCategory] = useState<'Accessories' | 'Clothing' | 'Faces'>('Accessories');
@@ -949,7 +949,7 @@ export default function AvatarCustomizer({
                     </div>
                   </div>
                   
-                  <span className="text-[9px] text-gray-500 font-sans italic text-center max-w-[160px] leading-relaxed">Your custom item will render dynamically everywhere inside the Roblox catalog.</span>
+                  <span className="text-[9px] text-gray-500 font-sans italic text-center max-w-[160px] leading-relaxed">Your custom item will render dynamically everywhere inside the Voxel catalog.</span>
                 </div>
 
                 {/* Form Controls (7 cols) */}
@@ -1129,7 +1129,7 @@ export default function AvatarCustomizer({
                     }}
                     className="w-full py-2.5 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-neutral-950 font-black text-xs uppercase tracking-widest rounded transition-all cursor-pointer shadow hover:shadow-lg active:scale-95 flex items-center justify-center gap-1.5"
                   >
-                    🚀 Publish Item to Roblox Catalog
+                    🚀 Publish Item to Voxel Catalog
                   </button>
                 </div>
               </div>

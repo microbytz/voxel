@@ -6,7 +6,7 @@ export const CURRENT_USER = {
   robux: 14500,
   avatarColor: "from-amber-400 to-orange-500",
   skinColor: "#ffe0b2",
-  equippedItems: ["1", "5"] // Fedora of Legend, Roblox Red Cap
+  equippedItems: ["1", "5"] // Fedora of Legend, Voxel Red Cap
 };
 
 export const MOCK_GAMES: Game[] = [
@@ -282,7 +282,7 @@ export const MOCK_FRIENDS: Friend[] = [
     username: "@builderman",
     avatarColor: "bg-red-500",
     isOnline: true,
-    status: "Busy coding Roblox Studio...",
+    status: "Busy coding Voxel Studio...",
     activeGameId: "g4"
   },
   {
@@ -422,7 +422,7 @@ export const MOCK_SHOP_ITEMS: ShopItem[] = [
   },
   {
     id: "5",
-    name: "Roblox Red Baseball Cap",
+    name: "Voxel Red Baseball Cap",
     price: 15,
     category: "Clothing",
     imageUrl: "🧢",
@@ -478,7 +478,7 @@ export const MOCK_MESSAGES: Message[] = [
     messages: [
       {
         senderName: "Builderman",
-        text: "Hi there! Welcome to the Roblox Web Platform. We are hard at work cooking up the new browser-based 3D Roblox Studio.",
+        text: "Hi there! Welcome to the Voxel Web Platform. We are hard at work cooking up the new browser-based 3D Voxel Studio.",
         time: "10:30 AM"
       },
       {
@@ -551,7 +551,7 @@ export const MOCK_TRADES: Trade[] = [
     partnerAvatarColor: "bg-purple-500",
     status: "Completed",
     giving: [
-      { name: "Roblox Red Baseball Cap", value: 15 }
+      { name: "Voxel Red Baseball Cap", value: 15 }
     ],
     receiving: [
       { name: "The Original Smile Face", value: 0 }

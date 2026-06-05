@@ -155,7 +155,7 @@ export default function ScreenRecorder() {
     if (!recordedUrl) return;
     const a = document.createElement('a');
     a.href = recordedUrl;
-    a.download = `Roblox_Portal_Stream_${Date.now()}.webm`;
+    a.download = `Voxel_Portal_Stream_${Date.now()}.webm`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
