@@ -1,0 +1,103 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "The custom profile details of a registered Roblox player, including custom avatar config and Robux balance",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "The printable display name" },
+        "username": { "type": "string", "description": "Unique username starting with @" },
+        "robux": { "type": "integer", "description": "Current active Robux balance" },
+        "avatarColor": { "type": "string", "description": "Tailwind color class for avatar gradient background" },
+        "skinColor": { "type": "string", "description": "Hex color code for skin complexion" },
+        "equippedItems": { "type": "array", "description": "Array of equipped ShopItem IDs" },
+        "email": { "type": "string", "description": "User account email" },
+        "gender": { "type": "string", "description": "User gender selection" },
+        "birthday": { "type": "string", "description": "User birth date string YYYY-MM-DD" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "username", "robux", "avatarColor", "skinColor", "equippedItems"]
+    },
+    "ChatChannel": {
+      "title": "Chat Channel",
+      "description": "A conversation channel between two users",
+      "type": "object",
+      "properties": {
+        "participants": { "type": "array", "description": "UIDs of the two conversing users" },
+        "lastMessageText": { "type": "string" },
+        "lastMessageTime": { "type": "string", "format": "date-time" },
+        "unreadBy": { "type": "array", "description": "UIDs of participants who have not read the latest message" }
+      },
+      "required": ["participants"]
+    },
+    "ChatMessage": {
+      "title": "Chat Message",
+      "description": "An individual message within a ChatChannel",
+      "type": "object",
+      "properties": {
+        "senderId": { "type": "string" },
+        "senderName": { "type": "string" },
+        "text": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["senderId", "senderName", "text", "createdAt"]
+    },
+    "Trade": {
+      "title": "Trade Proposal",
+      "description": "A barter agreement proposal containing items proposed by each user",
+      "type": "object",
+      "properties": {
+        "senderId": { "type": "string" },
+        "receiverId": { "type": "string" },
+        "partner": { "type": "string", "description": "Display name of the partner trader" },
+        "partnerAvatarColor": { "type": "string" },
+        "status": { "type": "string", "enum": ["Pending", "Accepted", "Declined", "Completed"] },
+        "giving": { "type": "array" },
+        "receiving": { "type": "array" },
+        "valueDifference": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["senderId", "receiverId", "status", "giving", "receiving", "valueDifference"]
+    },
+    "PublishedGame": {
+      "title": "Published Game Experience",
+      "description": "A custom 2D or 3D game created and published by a user",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "status": { "type": "string", "enum": ["Public", "Private"] },
+        "lastUpdated": { "type": "string" },
+        "visits": { "type": "integer" },
+        "createdDate": { "type": "string" },
+        "is2D": { "type": "boolean" },
+        "creatorId": { "type": "string" },
+        "creatorName": { "type": "string" },
+        "mapData": { "type": "string", "description": "Stringified JSON of optimized map data with short keys" }
+      },
+      "required": ["title", "description", "status", "creatorId", "creatorName", "mapData"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Registered player profiles stored in unique document by UID"
+    },
+    "/chats/{chatId}": {
+      "schema": "ChatChannel",
+      "description": "Conversational channels"
+    },
+    "/chats/{chatId}/messages/{messageId}": {
+      "schema": "ChatMessage",
+      "description": "Subcollection containing individual ordered chat room messages"
+    },
+    "/trades/{tradeId}": {
+      "schema": "Trade",
+      "description": "Trades requested between users"
+    },
+    "/publishedGames/{gameId}": {
+      "schema": "PublishedGame",
+      "description": "The complete list of games created or published across the platform"
+    }
+  }
+}

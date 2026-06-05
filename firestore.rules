@@ -1,0 +1,124 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default catch-all: deny all reads and writes
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Allow reading the test connection document to verify connectivity
+    match /test/connection {
+      allow read: if true;
+    }
+
+    // --- Helper Primitives ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // --- Users Collection ---
+    match /users/{userId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if isOwner(userId) && isValidUser(request.resource.data);
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['name', 'username', 'robux', 'avatarColor', 'skinColor', 'equippedItems'])
+        && data.keys().size() <= 11
+        && data.name is string && data.name.size() <= 100
+        && data.username is string && data.username.size() <= 100
+        && data.robux is int
+        && data.avatarColor is string && data.avatarColor.size() <= 128
+        && data.skinColor is string && data.skinColor.size() <= 32
+        && data.equippedItems is list
+        && data.equippedItems.size() <= 50
+        && (!data.keys().hasAny(['gender']) || (data.gender is string && data.gender.size() <= 50))
+        && (!data.keys().hasAny(['birthday']) || (data.birthday is string && data.birthday.size() <= 50));
+    }
+
+    // --- Chats Collection ---
+    match /chats/{chatId} {
+      allow get: if isSignedIn() && (request.auth.uid in resource.data.participants);
+      allow list: if isSignedIn() && (request.auth.uid in resource.data.participants);
+      allow create: if isSignedIn() && (request.auth.uid in request.resource.data.participants) && isValidChatChannel(request.resource.data);
+      allow update: if isSignedIn() && (request.auth.uid in resource.data.participants) && (request.auth.uid in request.resource.data.participants);
+    }
+
+    function isValidChatChannel(data) {
+      return data.keys().hasAll(['participants'])
+        && data.participants is list
+        && data.participants.size() <= 2
+        && (data.participants.size() == 0 || data.participants[0] is string);
+    }
+
+    // --- Chat Messages Subcollection ---
+    match /chats/{chatId}/messages/{messageId} {
+      allow get: if isSignedIn() && (request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants);
+      allow list: if isSignedIn() && (request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants);
+      allow create: if isSignedIn() && (request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants) && isValidChatMessage(request.resource.data);
+    }
+
+    function isValidChatMessage(data) {
+      return data.keys().hasAll(['senderId', 'senderName', 'text', 'createdAt'])
+        && data.senderId == request.auth.uid
+        && data.senderName is string && data.senderName.size() <= 200
+        && data.text is string && data.text.size() <= 1000;
+    }
+
+    // --- Trades Collection ---
+    match /trades/{tradeId} {
+      allow get: if isSignedIn() && (request.auth.uid == resource.data.senderId || request.auth.uid == resource.data.receiverId);
+      allow list: if isSignedIn() && (request.auth.uid == resource.data.senderId || request.auth.uid == resource.data.receiverId);
+      allow create: if isSignedIn() && (
+        request.auth.uid == request.resource.data.senderId || 
+        (request.auth.uid == request.resource.data.receiverId && request.resource.data.senderId.startsWith('f2_'))
+      ) && isValidTrade(request.resource.data);
+      allow update: if isSignedIn() && (
+        // Receiver can accept/decline
+        (request.auth.uid == resource.data.receiverId && request.resource.data.status in ['Accepted', 'Declined'] && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']))
+        ||
+        // Sender can cancel (Declined)
+        (request.auth.uid == resource.data.senderId && request.resource.data.status == 'Declined' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']))
+      );
+    }
+
+    function isValidTrade(data) {
+      return data.keys().hasAll(['senderId', 'receiverId', 'status', 'giving', 'receiving', 'valueDifference'])
+        && data.senderId is string && data.receiverId is string
+        && data.status in ['Pending', 'Accepted', 'Declined', 'Completed']
+        && data.giving is list && data.receiving is list
+        && data.valueDifference is int;
+    }
+
+    // --- Published Games Collection ---
+    match /publishedGames/{gameId} {
+      allow get: if resource.data.status == 'Public' || (isSignedIn() && resource.data.creatorId == request.auth.uid);
+      allow list: if resource.data.status == 'Public' || (isSignedIn() && resource.data.creatorId == request.auth.uid);
+      allow create: if isSignedIn() && request.resource.data.creatorId == request.auth.uid && isValidPublishedGame(request.resource.data);
+      allow update: if isSignedIn() && resource.data.creatorId == request.auth.uid && request.resource.data.creatorId == request.auth.uid && isValidPublishedGame(request.resource.data);
+      allow delete: if isSignedIn() && resource.data.creatorId == request.auth.uid;
+    }
+
+    function isValidPublishedGame(data) {
+      return data.keys().hasAll(['title', 'description', 'status', 'creatorId', 'creatorName', 'mapData'])
+        && data.title is string && data.title.size() <= 200
+        && data.description is string && data.description.size() <= 2000
+        && data.status in ['Public', 'Private']
+        && data.creatorId == request.auth.uid
+        && data.creatorName is string && data.creatorName.size() <= 200
+        && data.mapData is string && data.mapData.size() <= 1048576; // Bound to max 1MB
+    }
+
+  }
+}

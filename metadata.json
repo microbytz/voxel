@@ -1,0 +1,6 @@
+{
+  "name": "Roblox Web Dashboard",
+  "description": "A high-fidelity Roblox player dashboard and creator studio dashboard built in React and Tailwind CSS.",
+  "requestFramePermissions": ["microphone", "display-capture"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
