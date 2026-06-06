@@ -267,16 +267,42 @@ export default function App() {
   };
 
   // Core synchronized profile states
-  const [robux, setRobux] = useState<number>(CURRENT_USER.robux);
-  const [equippedItems, setEquippedItems] = useState<string[]>(CURRENT_USER.equippedItems);
-  const [skinColor, setSkinColor] = useState<string>(CURRENT_USER.skinColor);
-  const [avatarColor, setAvatarColor] = useState<string>(CURRENT_USER.avatarColor);
+  const [robux, setRobux] = useState<number>(() => {
+    const cached = localStorage.getItem('blox_robux');
+    return cached ? parseInt(cached, 10) : CURRENT_USER.robux;
+  });
+  const [equippedItems, setEquippedItems] = useState<string[]>(() => {
+    const cached = localStorage.getItem('blox_equipped_items');
+    if (cached) {
+      try { return JSON.parse(cached); } catch (e) {}
+    }
+    return CURRENT_USER.equippedItems;
+  });
+  const [skinColor, setSkinColor] = useState<string>(() => {
+    return localStorage.getItem('blox_skin_color') || CURRENT_USER.skinColor;
+  });
+  const [avatarColor, setAvatarColor] = useState<string>(() => {
+    return localStorage.getItem('blox_avatar_color') || CURRENT_USER.avatarColor;
+  });
 
   // Search parameters
   const [searchQuery, setSearchQuery] = useState<string>("");
 
   // Modals overlays state
   const [activeGame, setActiveGame] = useState<Game | null>(null);
+  const [isEditingDescription, setIsEditingDescription] = useState<boolean>(false);
+  const [editedDescription, setEditedDescription] = useState<string>("");
+  const [isSavingDescription, setIsSavingDescription] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (activeGame) {
+      setEditedDescription(activeGame.description || "");
+    } else {
+      setEditedDescription("");
+    }
+    setIsEditingDescription(false);
+  }, [activeGame]);
+
   const [runningGame, setRunningGame] = useState<Game | null>(null);
   const [runningStudio, setRunningStudio] = useState<boolean>(false);
   const [running2DStudio, setRunning2DStudio] = useState<boolean>(false);
@@ -304,7 +330,13 @@ export default function App() {
   // Dynamic Lists state
   const [messages, setMessages] = useState<Message[]>(MOCK_MESSAGES);
   const [trades, setTrades] = useState<Trade[]>(MOCK_TRADES);
-  const [shopItems, setShopItems] = useState<ShopItem[]>(MOCK_SHOP_ITEMS);
+  const [shopItems, setShopItems] = useState<ShopItem[]>(() => {
+    const cached = localStorage.getItem('blox_shop_items');
+    if (cached) {
+      try { return JSON.parse(cached); } catch (e) {}
+    }
+    return MOCK_SHOP_ITEMS;
+  });
   const [experiences, setExperiences] = useState<UserExperience[]>(MOCK_EXPERIENCES);
   const [games, setGames] = useState<Game[]>(MOCK_GAMES);
 
@@ -516,10 +548,22 @@ export default function App() {
         } else {
           setOnboardingOpen(true);
         }
-        setRobux(CURRENT_USER.robux);
-        setEquippedItems(CURRENT_USER.equippedItems);
-        setSkinColor(CURRENT_USER.skinColor);
-        setAvatarColor(CURRENT_USER.avatarColor);
+        const cachedRobux = localStorage.getItem('blox_robux');
+        setRobux(cachedRobux ? parseInt(cachedRobux, 10) : CURRENT_USER.robux);
+
+        const cachedEquipped = localStorage.getItem('blox_equipped_items');
+        if (cachedEquipped) {
+          try {
+            setEquippedItems(JSON.parse(cachedEquipped));
+          } catch (e) {
+            setEquippedItems(CURRENT_USER.equippedItems);
+          }
+        } else {
+          setEquippedItems(CURRENT_USER.equippedItems);
+        }
+
+        setSkinColor(localStorage.getItem('blox_skin_color') || CURRENT_USER.skinColor);
+        setAvatarColor(localStorage.getItem('blox_avatar_color') || CURRENT_USER.avatarColor);
       }
       setAuthLoading(false);
     });
@@ -552,6 +596,27 @@ export default function App() {
     }, 1200);
     return () => clearTimeout(debounceTimeout);
   }, [robux, equippedItems, skinColor, avatarColor, currentUser, onboardingOpen, customName, customUsername, customGender, customBirthday]);
+
+  // Synchronize state values locally to retain them across page reloads/starts
+  useEffect(() => {
+    localStorage.setItem('blox_robux', robux.toString());
+  }, [robux]);
+
+  useEffect(() => {
+    localStorage.setItem('blox_equipped_items', JSON.stringify(equippedItems));
+  }, [equippedItems]);
+
+  useEffect(() => {
+    localStorage.setItem('blox_skin_color', skinColor);
+  }, [skinColor]);
+
+  useEffect(() => {
+    localStorage.setItem('blox_avatar_color', avatarColor);
+  }, [avatarColor]);
+
+  useEffect(() => {
+    localStorage.setItem('blox_shop_items', JSON.stringify(shopItems));
+  }, [shopItems]);
   
   // Simulated stock ticker interval for Limited-edition catalog items
   useEffect(() => {
@@ -865,11 +930,12 @@ export default function App() {
           }).catch(err => {
             handleFirestoreError(err, OperationType.CREATE, `publishedGames/${exp.id}`);
           });
-        } else if (prevExp.status !== exp.status || prevExp.title !== exp.title) {
+        } else if (prevExp.status !== exp.status || prevExp.title !== exp.title || prevExp.description !== exp.description) {
           const expRef = doc(db, 'publishedGames', exp.id);
           updateDoc(expRef, {
             status: exp.status,
             title: exp.title,
+            description: exp.description || "No description",
             lastUpdated: 'Just now'
           }).catch(err => {
             handleFirestoreError(err, OperationType.UPDATE, `publishedGames/${exp.id}`);
@@ -1236,10 +1302,88 @@ export default function App() {
               </div>
 
               <div className="space-y-2">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400">About Experience</h4>
-                <p className="text-sm text-gray-300 leading-relaxed bg-[#111214] border border-[#393B3D] p-3.5 rounded font-sans">
-                  {activeGame.description.slice(0, 160)}
-                </p>
+                <div className="flex justify-between items-center">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400">About Experience</h4>
+                  {(() => {
+                    const isOwnGame = experiences.some(exp => exp.id === activeGame.id) || activeGame.creator === activeName;
+                    return isOwnGame && (
+                      <button
+                        type="button"
+                        id="edit-game-desc-btn"
+                        onClick={() => {
+                          setEditedDescription(activeGame.description || "");
+                          setIsEditingDescription(true);
+                        }}
+                        className="text-xs text-amber-500 hover:text-amber-400 font-extrabold flex items-center gap-1 cursor-pointer transition-colors"
+                        title="Edit game description"
+                      >
+                        ✏️ Edit Description
+                      </button>
+                    );
+                  })()}
+                </div>
+                {isEditingDescription ? (
+                  <div className="space-y-2 animate-fadeIn" id="edit-desc-form">
+                    <textarea
+                      id="edit-game-desc-input"
+                      value={editedDescription}
+                      onChange={(e) => setEditedDescription(e.target.value)}
+                      maxLength={500}
+                      rows={4}
+                      className="w-full text-xs text-gray-250 bg-[#111214] border border-[#393B3D] focus:border-amber-500 rounded p-3.5 outline-none font-sans min-h-[100px] resize-none"
+                      placeholder="Write something cool about your game..."
+                    />
+                    <div className="flex justify-end gap-2 text-xs">
+                      <button
+                        type="button"
+                        id="cancel-edit-desc-btn"
+                        onClick={() => {
+                          setIsEditingDescription(false);
+                          setEditedDescription(activeGame.description || "");
+                        }}
+                        className="px-3 py-1.5 bg-[#323436] hover:bg-[#3d4043] text-gray-300 rounded cursor-pointer transition-colors font-bold"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        id="save-edit-desc-btn"
+                        disabled={isSavingDescription}
+                        onClick={async () => {
+                          setIsSavingDescription(true);
+                          try {
+                            const expRef = doc(db, 'publishedGames', activeGame.id);
+                            await updateDoc(expRef, {
+                              description: editedDescription,
+                              lastUpdated: 'Just now'
+                            });
+                            
+                            // Live updates to local lists immediately
+                            setActiveGame(prev => prev ? { ...prev, description: editedDescription } : null);
+                            setExperiences(prev => prev.map(exp => exp.id === activeGame.id ? { ...exp, description: editedDescription } : exp));
+                            setGames(prev => prev.map(g => g.id === activeGame.id ? { ...g, description: editedDescription } : g));
+                            
+                            setIsEditingDescription(false);
+                            setToastMessage("🎉 Description saved successfully!");
+                            setTimeout(() => setToastMessage(null), 4000);
+                          } catch (err: any) {
+                            console.error("Failed to update Firestore description:", err);
+                            handleFirestoreError(err, OperationType.UPDATE, `publishedGames/${activeGame.id}`);
+                          } finally {
+                            setIsSavingDescription(false);
+                          }
+                        }}
+                        className="px-4 py-1.5 bg-amber-500 hover:bg-amber-400 text-neutral-950 font-extrabold rounded cursor-pointer transition-colors flex items-center gap-1"
+                      >
+                        {isSavingDescription ? "Saving..." : "Save Changes"}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-300 leading-relaxed bg-[#111214] border border-[#393B3D] p-3.5 rounded font-sans whitespace-pre-wrap">
+                    {activeGame.description || "No description provided."}
+                  </p>
+                )}
               </div>
 
               {/* Metadata tags */}
@@ -1353,6 +1497,10 @@ export default function App() {
           onAddFriend={handleAddFriend}
           blockedUsers={blockedUsers}
           onToggleBlock={handleToggleBlock}
+          onUpdateGame={(updated) => {
+            setRunningGame(updated);
+            setGames(prev => prev.map(g => g.id === updated.id ? updated : g));
+          }}
         />
       )}
 

@@ -13,6 +13,7 @@ interface GameSimulatorProps {
   onAddFriend?: (friend: Friend) => void;
   blockedUsers?: string[];
   onToggleBlock?: (name: string) => void;
+  onUpdateGame?: (updatedGame: Game) => void;
 }
 
 export default function GameSimulator({ 
@@ -24,7 +25,8 @@ export default function GameSimulator({
   friends,
   onAddFriend,
   blockedUsers = [],
-  onToggleBlock
+  onToggleBlock,
+  onUpdateGame
 }: GameSimulatorProps) {
   const [showSplash, setShowSplash] = useState<boolean>(true);
   const [launchStep, setLaunchStep] = useState<number>(0);
@@ -33,6 +35,14 @@ export default function GameSimulator({
   const [highScore, setHighScore] = useState<number>(() => {
     return parseInt(localStorage.getItem(`roblox_highscore_${game.id}`) || '0', 10);
   });
+
+  const [isEditingDesc, setIsEditingDesc] = useState<boolean>(false);
+  const [tempDesc, setTempDesc] = useState<string>(game.description || '');
+
+  // Sync tempDesc when game changes
+  useEffect(() => {
+    setTempDesc(game.description || '');
+  }, [game.description]);
   
   const [showControls, setShowControls] = useState<boolean>(true);
   const [isTouchDevice, setIsTouchDevice] = useState<boolean>(false);
@@ -912,12 +922,13 @@ export default function GameSimulator({
 
   useEffect(() => {
     if (!game.is2D && game.parts) {
+      const scaleDev = 2.5;
       const coinParts = game.parts.filter(p => p.specialBehavior === 'candy_coin' || p.name?.toLowerCase().includes('coin'));
       if (coinParts.length > 0) {
         stars3DRef.current = coinParts.map(p => ({
-          x: p.x,
-          y: p.y + p.sizeY / 2 + 0.3,
-          z: p.z,
+          x: p.x / scaleDev,
+          y: p.y / scaleDev + (p.sizeY / scaleDev) / 2 + 0.3,
+          z: p.z / scaleDev,
           collected: false
         }));
       } else {
@@ -925,9 +936,9 @@ export default function GameSimulator({
         const normalParts = game.parts.filter(p => !p.name?.toLowerCase().includes('spawn') && p.y > 0);
         if (normalParts.length > 0) {
           stars3DRef.current = normalParts.slice(0, 5).map(p => ({
-            x: p.x,
-            y: p.y + p.sizeY / 2 + 1.2,
-            z: p.z,
+            x: p.x / scaleDev,
+            y: p.y / scaleDev + (p.sizeY / scaleDev) / 2 + 1.2,
+            z: p.z / scaleDev,
             collected: false
           }));
         }
@@ -1231,37 +1242,39 @@ export default function GameSimulator({
     if (!game.is2D) {
       const player3D = player3DRef.current;
 
+      const scaleDev = 2.5;
       // 3D Blocks layout: static steps or from game.parts if provided
       const blockPlatforms = game.parts ? game.parts.map(p => ({
-        x: p.x,
-        y: p.y - 1.0,
-        z: -p.z * 1.0,
-        w: p.sizeX,
-        h: p.sizeY,
-        d: p.sizeZ,
+        x: p.x / scaleDev,
+        y: p.y / scaleDev,
+        z: p.z / scaleDev,
+        w: p.sizeX / scaleDev,
+        h: p.sizeY / scaleDev,
+        d: p.sizeZ / scaleDev,
         color: p.color,
         label: p.name,
+        type: p.type as string,
         specialBehavior: p.specialBehavior as string | undefined,
         isWinPad: p.specialBehavior === 'dimension_rift_portal' || p.name?.toLowerCase().includes('finish') || p.name?.toLowerCase().includes('victory') || p.name?.toLowerCase().includes('portal')
       })) : [
-        { x: 0, y: -0.6, z: 0, w: 7, h: 0.4, d: 7, color: '#10b981', label: 'Spawn Pad', specialBehavior: undefined as string | undefined, isWinPad: false },
-        { x: 0, y: 0.1, z: 7, w: 3, h: 0.4, d: 3, color: '#3b82f6', label: 'Step 1', specialBehavior: undefined as string | undefined, isWinPad: false },
-        { x: 3.2, y: 0.8, z: 12, w: 3, h: 0.4, d: 3, color: '#f59e0b', label: 'Step 2', specialBehavior: undefined as string | undefined, isWinPad: false },
-        { x: -3.2, y: 1.5, z: 17, w: 3, h: 0.4, d: 3, color: '#8b5cf6', label: 'Step 3', specialBehavior: undefined as string | undefined, isWinPad: false },
-        { x: 0, y: 2.2, z: 23, w: 3, h: 0.4, d: 3, color: '#22d3ee', label: 'Step 4', specialBehavior: undefined as string | undefined, isWinPad: false },
-        { x: 3.5, y: 2.9, z: 28, w: 3, h: 0.4, d: 3, color: '#f43f5e', label: 'Step 5', specialBehavior: undefined as string | undefined, isWinPad: false },
-        { x: 0, y: 3.6, z: 34, w: 6, h: 0.4, d: 6, color: '#ec4899', isWinPad: true, label: 'Victory Pad', specialBehavior: undefined as string | undefined }
+        { x: 0, y: -0.6, z: 0, w: 7, h: 0.4, d: 7, color: '#10b981', label: 'Spawn Pad', type: 'Block', specialBehavior: undefined as string | undefined, isWinPad: false },
+        { x: 0, y: 0.1, z: 7, w: 3, h: 0.4, d: 3, color: '#3b82f6', label: 'Step 1', type: 'Block', specialBehavior: undefined as string | undefined, isWinPad: false },
+        { x: 3.2, y: 0.8, z: 12, w: 3, h: 0.4, d: 3, color: '#f59e0b', label: 'Step 2', type: 'Block', specialBehavior: undefined as string | undefined, isWinPad: false },
+        { x: -3.2, y: 1.5, z: 17, w: 3, h: 0.4, d: 3, color: '#8b5cf6', label: 'Step 3', type: 'Block', specialBehavior: undefined as string | undefined, isWinPad: false },
+        { x: 0, y: 2.2, z: 23, w: 3, h: 0.4, d: 3, color: '#22d3ee', label: 'Step 4', type: 'Block', specialBehavior: undefined as string | undefined, isWinPad: false },
+        { x: 3.5, y: 2.9, z: 28, w: 3, h: 0.4, d: 3, color: '#f43f5e', label: 'Step 5', type: 'Block', specialBehavior: undefined as string | undefined, isWinPad: false },
+        { x: 0, y: 3.6, z: 34, w: 6, h: 0.4, d: 6, color: '#ec4899', isWinPad: true, label: 'Victory Pad', type: 'Block', specialBehavior: undefined as string | undefined }
       ];
 
       const reset3DLevel = () => {
         const spawnPlat = blockPlatforms.find(p => p.specialBehavior === 'respawn_star' || p.label?.toLowerCase().includes('spawn'));
         if (spawnPlat) {
           player3D.px = spawnPlat.x;
-          player3D.py = spawnPlat.y + spawnPlat.h / 2 + 0.5;
+          player3D.py = spawnPlat.y + spawnPlat.h / 2 + 0.05;
           player3D.pz = spawnPlat.z;
         } else {
           player3D.px = blockPlatforms[0]?.x ?? 0;
-          player3D.py = (blockPlatforms[0]?.y ?? 0) + (blockPlatforms[0]?.h ?? 0.4) / 2 + 0.5;
+          player3D.py = (blockPlatforms[0]?.y ?? 0) + (blockPlatforms[0]?.h ?? 0.4) / 2 + 0.05;
           player3D.pz = blockPlatforms[0]?.z ?? 0;
         }
         player3D.vx = 0;
@@ -1402,7 +1415,8 @@ export default function GameSimulator({
               player3D.pz + 0.35 > minZ && player3D.pz - 0.35 < maxZ
             ) {
               const platformTop = plat.y + plat.h / 2;
-              if (player3D.py >= platformTop - 0.22 && player3D.py + player3D.vy <= platformTop) {
+              const overlap = player3D.py - platformTop;
+              if (player3D.vy <= 0.01 && overlap >= -0.35 && overlap <= 0.45) {
                 player3D.py = platformTop;
                 player3D.vy = 0;
                 player3D.isGrounded = true;
@@ -1667,13 +1681,20 @@ export default function GameSimulator({
           emojiDecal?: string;
           labelOverlay?: string;
           isHeadPart?: boolean;
+          shapeType?: string;
         }
 
         const solidsList: RendererCuboid[] = [];
 
         // 1. Push Platforms to solids list
         blockPlatforms.forEach(plat => {
-          solidsList.push({ cx: plat.x, cy: plat.y, cz: plat.z, w: plat.w, h: plat.h, d: plat.d, color: plat.color, labelOverlay: plat.label });
+          solidsList.push({ 
+            cx: plat.x, cy: plat.y, cz: plat.z, 
+            w: plat.w, h: plat.h, d: plat.d, 
+            color: plat.color, 
+            labelOverlay: plat.label,
+            shapeType: (plat as any).type || 'Block'
+          });
         });
 
         // 2. Push spinning stars to solids list
@@ -1786,8 +1807,51 @@ export default function GameSimulator({
         const headRotY = Math.sin(Date.now() * 0.0025) * 0.42;
         const headRotX = Math.cos(Date.now() * 0.0035) * 0.10;
 
-        // Process each solid into its corresponding individual faces
+        // Process each solid into its corresponding individual faces or shapes
         solidsList.forEach(item => {
+          const shape = item.shapeType || 'Block';
+
+          if (shape === 'Sphere') {
+            const proj = projectCoord(item.cx, item.cy, item.cz);
+            if (proj) {
+              const radius = item.w / 2;
+              globalFaces.push({
+                type: 'sphere',
+                cx: proj.x,
+                cy: proj.y,
+                r: radius * proj.scale,
+                color: item.color,
+                avgZ: proj.z,
+                id: Math.random().toString(),
+                labelOverlay: item.labelOverlay
+              } as any);
+            }
+            return;
+          }
+
+          if (shape === 'Cylinder') {
+            const topProj = projectCoord(item.cx, item.cy + item.h / 2, item.cz);
+            const bottomProj = projectCoord(item.cx, item.cy - item.h / 2, item.cz);
+            if (topProj && bottomProj) {
+              const rx = (item.w / 2) * topProj.scale;
+              const ry = (item.d / 2) * topProj.scale * 0.45;
+              globalFaces.push({
+                type: 'cylinder',
+                cxTop: topProj.x,
+                cyTop: topProj.y,
+                cxBottom: bottomProj.x,
+                cyBottom: bottomProj.y,
+                rx,
+                ry,
+                color: item.color,
+                avgZ: (topProj.z + bottomProj.z) / 2,
+                id: Math.random().toString(),
+                labelOverlay: item.labelOverlay
+              } as any);
+            }
+            return;
+          }
+
           const x0 = item.cx - item.w / 2; const x1 = item.cx + item.w / 2;
           const y0 = item.cy - item.h / 2; const y1 = item.cy + item.h / 2;
           const z0 = item.cz - item.d / 2; const z1 = item.cz + item.d / 2;
@@ -1857,7 +1921,7 @@ export default function GameSimulator({
                 emojiDecal: face.isFront ? item.emojiDecal : undefined,
                 isFront: face.isFront,
                 labelOverlay: fIdx === 5 ? item.labelOverlay : undefined // attach label trigger to top face
-              });
+              } as any);
             }
           });
         });
@@ -1867,6 +1931,88 @@ export default function GameSimulator({
 
         // Draw sorted faces seamlessly
         globalFaces.forEach(face => {
+          if ((face as any).type === 'sphere') {
+            const f = face as any;
+            ctx.save();
+            // Gorgeous 3D radial glare effect
+            const grad = ctx.createRadialGradient(
+              f.cx - f.r * 0.3, f.cy - f.r * 0.3, f.r * 0.05,
+              f.cx, f.cy, f.r
+            );
+            grad.addColorStop(0, '#ffffff');
+            grad.addColorStop(0.35, f.color);
+            grad.addColorStop(1, getShadedColor(f.color, -50));
+            
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(f.cx, f.cy, f.r, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.strokeStyle = getShadedColor(f.color, -15);
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            if (f.labelOverlay) {
+              ctx.fillStyle = '#ffffff';
+              ctx.font = 'bold 8px monospace';
+              ctx.textAlign = 'center';
+              ctx.fillText(f.labelOverlay, f.cx, f.cy - f.r - 4);
+            }
+            ctx.restore();
+            return;
+          }
+
+          if ((face as any).type === 'cylinder') {
+            const f = face as any;
+            ctx.save();
+            
+            // Bottom face
+            ctx.fillStyle = getShadedColor(f.color, -20);
+            ctx.beginPath();
+            ctx.ellipse(f.cxBottom, f.cyBottom, f.rx, f.ry, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Side body path
+            ctx.fillStyle = f.color;
+            ctx.beginPath();
+            ctx.moveTo(f.cxTop - f.rx, f.cyTop);
+            ctx.lineTo(f.cxBottom - f.rx, f.cyBottom);
+            ctx.ellipse(f.cxBottom, f.cyBottom, f.rx, f.ry, 0, Math.PI, 0, true);
+            ctx.lineTo(f.cxTop + f.rx, f.cyTop);
+            ctx.ellipse(f.cxTop, f.cyTop, f.rx, f.ry, 0, 0, Math.PI, true);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Stroke side lines
+            ctx.strokeStyle = getShadedColor(f.color, -25);
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(f.cxTop - f.rx, f.cyTop);
+            ctx.lineTo(f.cxBottom - f.rx, f.cyBottom);
+            ctx.moveTo(f.cxTop + f.rx, f.cyTop);
+            ctx.lineTo(f.cxBottom + f.rx, f.cyBottom);
+            ctx.stroke();
+            
+            // Top face
+            ctx.fillStyle = getShadedColor(f.color, 15);
+            ctx.beginPath();
+            ctx.ellipse(f.cxTop, f.cyTop, f.rx, f.ry, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.strokeStyle = getShadedColor(f.color, 10);
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            if (f.labelOverlay) {
+              ctx.fillStyle = '#ffffff';
+              ctx.font = 'bold 8px monospace';
+              ctx.textAlign = 'center';
+              ctx.fillText(f.labelOverlay, f.cxTop, f.cyTop - f.ry - 4);
+            }
+            ctx.restore();
+            return;
+          }
+
           ctx.beginPath();
           ctx.moveTo(face.p1.x, face.p1.y);
           ctx.lineTo(face.p2.x, face.p2.y);
@@ -1907,7 +2053,7 @@ export default function GameSimulator({
           }
 
           // Label texts for floating triggers (labelOverlay on Win pads or spawn names)
-          if (face.labelOverlay) {
+          if (face.labelOverlay && face.p4) {
             const pTopMedian = face.p4; // top face anchor
             ctx.save();
             ctx.fillStyle = 'rgba(15, 23, 42, 0.78)';
@@ -2525,12 +2671,66 @@ export default function GameSimulator({
               </div>
             </div>
 
-            <div className="border-t border-[#313335] pt-4">
-              <span className="text-[10px] uppercase font-bold text-zinc-500 block mb-1">Description</span>
-              <p className="text-xs text-zinc-300 leading-relaxed max-h-24 overflow-y-auto scrollbar-thin">
-                {game.description || 'Welcome to this custom sandbox experience! Explore, complete challenges, and hang out with other voxel players in this multiplayer-ready blocky world.'}
-              </p>
-            </div>
+            {isEditingDesc ? (
+              <div className="border-t border-[#313335] pt-4 flex flex-col gap-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] uppercase font-bold text-zinc-500 block">Description</span>
+                  <span className="text-[9px] text-[#3b82f6] font-semibold tracking-wider uppercase">Editing Description...</span>
+                </div>
+                <textarea
+                  value={tempDesc}
+                  onChange={(e) => setTempDesc(e.target.value)}
+                  maxLength={400}
+                  className="w-full h-24 p-2.5 bg-[#121315] text-xs text-zinc-200 border border-[#3b82f6]/50 rounded-lg outline-none focus:border-[#3b82f6] resize-none font-sans leading-relaxed scrollbar-thin transition-colors"
+                  placeholder="Give your awesome game a short description so other players know what to expect!"
+                />
+                <div className="flex gap-2 justify-end">
+                  <button
+                    onClick={() => {
+                      setTempDesc(game.description || '');
+                      setIsEditingDesc(false);
+                      playSound(400, 0.05, 'triangle');
+                    }}
+                    className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-extrabold text-[10px] uppercase tracking-wider rounded transition-all cursor-pointer border border-[#313335]"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (onUpdateGame) {
+                        onUpdateGame({
+                          ...game,
+                          description: tempDesc
+                        });
+                      }
+                      setIsEditingDesc(false);
+                      playSound(900, 0.1, 'sine');
+                    }}
+                    className="px-3 py-1.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-zinc-950 font-black text-[10px] uppercase tracking-wider rounded transition-all cursor-pointer shadow-[0_0_10px_rgba(16,185,129,0.2)]"
+                  >
+                    Save Changes
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="border-t border-[#313335] pt-4 group relative">
+                <div className="flex justify-between items-center mb-1.5">
+                  <span className="text-[10px] uppercase font-bold text-zinc-500 block">Description</span>
+                  <button
+                    onClick={() => {
+                      setIsEditingDesc(true);
+                      playSound(600, 0.05, 'sine');
+                    }}
+                    className="px-2 py-0.5 bg-[#2a2b2d] hover:bg-zinc-700 text-zinc-300 font-extrabold text-[9px] uppercase tracking-wider rounded transition-all cursor-pointer flex items-center gap-1 border border-[#313335] shadow"
+                  >
+                    ✏️ Edit Description
+                  </button>
+                </div>
+                <p className="text-xs text-zinc-300 leading-relaxed max-h-24 overflow-y-auto scrollbar-thin bg-[#121315]/35 p-2 rounded-lg border border-[#313335]/30">
+                  {game.description || 'Welcome to this custom sandbox experience! Explore, complete challenges, and hang out with other voxel players in this multiplayer-ready blocky world.'}
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Bottom actions cover */}

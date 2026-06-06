@@ -3758,7 +3758,7 @@ export default function StudioMock({ onClose, onLaunchGame }: StudioMockProps) {
                 return (
                   <g 
                     key={p.id} 
-                    className="cursor-pointer"
+                    className="cursor-pointer part-g"
                     onClick={(e) => handlePartSelection(e, p.id)}
                     transform={`rotate(${hasBlockOr3DRotation ? 0 : (p.rotation || 0)}, ${centerX}, ${centerY})`}
                   >
@@ -4207,7 +4207,7 @@ export default function StudioMock({ onClose, onLaunchGame }: StudioMockProps) {
 
                     {/* Direct Interactive Vector Gizmos overlays on primary selection */}
                     {isPrimarySelected && (
-                      <g filter="url(#gizmo-shadow)">
+                      <g filter="url(#gizmo-shadow)" className="gizmo-control">
                         {/* 1. INTERACTIVE TRANSLATION/MOVE GIZMO */}
                         {activeTool === 'Move' && (() => {
                           const renderArrow = (
@@ -4860,291 +4860,70 @@ export default function StudioMock({ onClose, onLaunchGame }: StudioMockProps) {
                           );
                         })()}
 
-                        {/* 4. SELECT GIZMO (Same design as scale/move with beautiful 3D nodes and center plane faces) */}
+                        {/* 4. SELECT GIZMO (Polished 3D bounding box selection outline) */}
                         {activeTool === 'Select' && (() => {
-                          const renderCube = (
-                            cx: number, 
-                            cy: number, 
-                            colorLight: string, 
-                            colorMedium: string, 
-                            colorDark: string, 
-                            isDragging: boolean
-                          ) => {
-                            const S = 5.5 * Math.max(0.65, scFactor) * (isDragging ? 1.35 : 1.0);
-                            
-                            // Isometric projected cube vertices
-                            const t1_x = cx;
-                            const t1_y = cy - S;
-                            const t2_x = cx + S * 1.0;
-                            const t2_y = cy - S * 0.5;
-                            const t3_x = cx;
-                            const t3_y = cy;
-                            const t4_x = cx - S * 1.0;
-                            const t4_y = cy - S * 0.5;
-                            
-                            const b2_x = cx + S * 1.0;
-                            const b2_y = cy + S * 0.5;
-                            const b3_x = cx;
-                            const b3_y = cy + S;
-                            const b4_x = cx - S * 1.0;
-                            const b4_y = cy + S * 0.5;
-
-                            return (
-                              <g style={{ pointerEvents: 'none' }}>
-                                {/* Top Face */}
-                                <polygon 
-                                  points={`${t1_x},${t1_y} ${t2_x},${t2_y} ${t3_x},${t3_y} ${t4_x},${t4_y}`} 
-                                  fill={colorLight} 
-                                  stroke={colorLight}
-                                  strokeWidth="0.5"
-                                />
-                                {/* Left Face */}
-                                <polygon 
-                                  points={`${t4_x},${t4_y} ${t3_x},${t3_y} ${b3_x},${b3_y} ${b4_x},${b4_y}`} 
-                                  fill={colorMedium} 
-                                  stroke={colorMedium}
-                                  strokeWidth="0.5"
-                                />
-                                {/* Right Face */}
-                                <polygon 
-                                  points={`${t3_x},${t3_y} ${t2_x},${t2_y} ${b2_x},${b2_y} ${b3_x},${b3_y}`} 
-                                  fill={colorDark} 
-                                  stroke={colorDark}
-                                  strokeWidth="0.5"
-                                />
-                              </g>
-                            );
-                          };
-
-                          const scaleY_up_y = centerY - (sizeZ * 2.2 * scFactor) - 6 * scFactor;
-                          const scaleY_down_y = centerY + (sizeY * 4.5 * scFactor) + 6 * scFactor;
-                          const scaleX_right_x = centerX + (sizeX * 3.5 * scFactor) + 6 * scFactor;
-                          const scaleX_right_y = centerY + (sizeY * 2.2 * scFactor);
-                          const scaleX_left_x = centerX - (sizeX * 3.5 * scFactor) - 6 * scFactor;
-                          const scaleX_left_y = centerY + (sizeY * 2.2 * scFactor);
-                          const scaleZ_fwd_x = centerX + 20 * scFactor;
-                          const scaleZ_fwd_y = centerY - (sizeZ * 2.2 * scFactor) - 10 * scFactor;
-                          const scaleZ_bwd_x = centerX - 20 * scFactor;
-                          const scaleZ_bwd_y = centerY + (sizeY * 4.5 * scFactor) + 10 * scFactor;
-
-                          // 3D center planes
-                          const ptRed = [
-                            `${centerX},${centerY}`,
-                            `${centerX + 14 * scFactor},${centerY - 7 * scFactor}`,
-                            `${centerX + 14 * scFactor},${centerY - 21 * scFactor}`,
-                            `${centerX},${centerY - 14 * scFactor}`
-                          ].join(' ');
-
-                          const ptGreen = [
-                            `${centerX},${centerY}`,
-                            `${centerX + 14 * scFactor},${centerY - 7 * scFactor}`,
-                            `${centerX},${centerY - 14 * scFactor}`,
-                            `${centerX - 14 * scFactor},${centerY - 7 * scFactor}`
-                          ].join(' ');
-
-                          const ptBlue = [
-                            `${centerX},${centerY}`,
-                            `${centerX - 14 * scFactor},${centerY - 7 * scFactor}`,
-                            `${centerX - 14 * scFactor},${centerY - 21 * scFactor}`,
-                            `${centerX},${centerY - 14 * scFactor}`
-                          ].join(' ');
-
-                          const rectX = centerX - (sizeX * 3.5 * scFactor) - 4 * scFactor;
-                          const rectY = centerY - (sizeZ * 2.2 * scFactor) - 4 * scFactor;
-                          const rectW = (sizeX * 7 * scFactor) + 8 * scFactor;
-                          const rectH = (sizeY * 4.5 * scFactor) + (sizeZ * 2.2 * scFactor) + 8 * scFactor;
+                          const rectX = centerX - (sizeX * 3.5 * scFactor) - 6 * scFactor;
+                          const rectY = centerY - (sizeZ * 2.2 * scFactor) - 6 * scFactor;
+                          const rectW = (sizeX * 7 * scFactor) + 12 * scFactor;
+                          const rectH = (sizeY * 4.5 * scFactor) + (sizeZ * 2.2 * scFactor) + 12 * scFactor;
 
                           return (
                             <g>
-                              {/* 1. Low-opacity viewport bounding rect for outline visual cue */}
+                              {/* 1. Translucent cyan fill inside the selection box to make the part pop */}
+                              <rect 
+                                x={rectX} 
+                                y={rectY} 
+                                width={rectW} 
+                                height={rectH} 
+                                fill="rgba(6, 182, 212, 0.05)"
+                                rx="2"
+                              />
+
+                              {/* 2. Professional bright cyan dashed selection outline */}
                               <rect 
                                 x={rectX} 
                                 y={rectY} 
                                 width={rectW} 
                                 height={rectH} 
                                 stroke="#22d3ee" 
-                                strokeWidth="0.8" 
-                                strokeDasharray="2 3" 
+                                strokeWidth="1.5" 
+                                strokeDasharray="3 3" 
                                 fill="none" 
-                                opacity="0.2" 
+                                rx="2"
                               />
 
-                              {/* 2. Three central semi-transparent isometric face planes */}
-                              {/* Green XZ floor plane */}
-                              <polygon points={ptGreen} fill="rgba(16, 185, 129, 0.18)" stroke="rgba(16, 185, 129, 0.6)" strokeWidth="0.8" />
-                              {/* Red YZ plane */}
-                              <polygon points={ptRed} fill="rgba(239, 68, 68, 0.18)" stroke="rgba(239, 68, 68, 0.6)" strokeWidth="0.8" />
-                              {/* Blue XY plane */}
-                              <polygon points={ptBlue} fill="rgba(59, 130, 246, 0.18)" stroke="rgba(59, 130, 246, 0.6)" strokeWidth="0.8" />
+                              {/* 3. Corner visual brackets to look like premium 3D modeling selection overlay */}
+                              {/* Top-Left Bracket */}
+                              <path d={`M ${rectX} ${rectY + 10} L ${rectX} ${rectY} L ${rectX + 10} ${rectY}`} stroke="#06b6d4" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+                              {/* Top-Right Bracket */}
+                              <path d={`M ${rectX + rectW - 10} ${rectY} L ${rectX + rectW} ${rectY} L ${rectX + rectW} ${rectY + 10}`} stroke="#06b6d4" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+                              {/* Bottom-Left Bracket */}
+                              <path d={`M ${rectX} ${rectY + rectH - 10} L ${rectX} ${rectY + rectH} L ${rectX + 10} ${rectY + rectH}`} stroke="#06b6d4" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+                              {/* Bottom-Right Bracket */}
+                              <path d={`M ${rectX + rectW - 10} ${rectY + rectH} L ${rectX + rectW} ${rectY + rectH} L ${rectX + rectW} ${rectY + rectH - 10}`} stroke="#06b6d4" strokeWidth="2.5" fill="none" strokeLinecap="round" />
 
-                              {/* 3. Coordinate axes lines */}
-                              {/* Y-Axes (Green Vertical Height Lines) */}
-                              <line x1={centerX} y1={centerY} x2={centerX} y2={scaleY_up_y} stroke="#10b981" strokeWidth="2" strokeDasharray="1 1" />
-                              <line x1={centerX} y1={centerY} x2={centerX} y2={scaleY_down_y} stroke="#065f46" strokeWidth="1.5" strokeDasharray="1 1" />
-
-                              {/* X-Axes (Red Horizontal Width Lines) */}
-                              <line x1={centerX} y1={centerY} x2={scaleX_right_x} y2={scaleX_right_y} stroke="#f87171" strokeWidth="2" strokeDasharray="1 1" />
-                              <line x1={centerX} y1={centerY} x2={scaleX_left_x} y2={scaleX_left_y} stroke="#991b1b" strokeWidth="1.5" strokeDasharray="1 1" />
-
-                              {/* Z-Axes (Blue Diagonal Depth Lines) */}
-                              <line x1={centerX} y1={centerY} x2={scaleZ_fwd_x} y2={scaleZ_fwd_y} stroke="#60a5fa" strokeWidth="2" strokeDasharray="1 1" />
-                              <line x1={centerX} y1={centerY} x2={scaleZ_bwd_x} y2={scaleZ_bwd_y} stroke="#1e3a8a" strokeWidth="1.5" strokeDasharray="1 1" />
-
-                              {/* 4. Interactive 3D Nodes (Cubes) representing scaling handles */}
-                              {/* Height Up Green (+Y Cube) */}
-                              <g>
-                                {renderCube(
-                                  centerX, 
-                                  scaleY_up_y, 
-                                  isDraggingThis('Select', 'sizeY') ? '#6ee7b7' : '#34d399', 
-                                  isDraggingThis('Select', 'sizeY') ? '#34d399' : '#10b981', 
-                                  isDraggingThis('Select', 'sizeY') ? '#10b981' : '#059669', 
-                                  isDraggingThis('Select', 'sizeY')
-                                )}
-                                <circle 
-                                  cx={centerX} 
-                                  cy={scaleY_up_y} 
-                                  r={(isDraggingThis('Select', 'sizeY') ? 14 : 10) * Math.max(0.65, scFactor)} 
-                                  fill="transparent" 
-                                  className="cursor-pointer touch-none"
-                                  onClick={(e) => { e.stopPropagation(); handleGizmoAction('Scale', 'sizeY', 1); }}
-                                  onPointerDown={(e) => handlePointerDown(e, 'Select', 'sizeY', p.sizeY)}
-                                  onPointerMove={handlePointerMove}
-                                  onPointerUp={handlePointerUp}
-                                  onPointerCancel={handlePointerUp}
+                              {/* 4. Part name and dimensions label at the top center of selection */}
+                              <g transform={`translate(${centerX}, ${rectY - 6})`}>
+                                <rect 
+                                  x={-selectedPart.name.length * 3.5 - 14} 
+                                  y="-12" 
+                                  width={selectedPart.name.length * 7 + 28} 
+                                  height="16" 
+                                  fill="#1e293b" 
+                                  rx="3" 
+                                  stroke="#22d3ee" 
+                                  strokeWidth="1" 
+                                />
+                                <text 
+                                  fill="#22d3ee" 
+                                  fontSize="9" 
+                                  fontWeight="bold" 
+                                  fontFamily="monospace" 
+                                  textAnchor="middle" 
+                                  y="-1"
                                 >
-                                  <title>Drag vertically or Click to Scale Height Up (+Y)</title>
-                                </circle>
-                              </g>
-
-                              {/* Height Down Green (-Y Cube) */}
-                              <g>
-                                {renderCube(
-                                  centerX, 
-                                  scaleY_down_y, 
-                                  isDraggingThis('Select', 'sizeY') ? '#10b981' : '#059669', 
-                                  isDraggingThis('Select', 'sizeY') ? '#059669' : '#047857', 
-                                  isDraggingThis('Select', 'sizeY') ? '#047857' : '#064e3b', 
-                                  isDraggingThis('Select', 'sizeY')
-                                )}
-                                <circle 
-                                  cx={centerX} 
-                                  cy={scaleY_down_y} 
-                                  r={(isDraggingThis('Select', 'sizeY') ? 14 : 10) * Math.max(0.65, scFactor)} 
-                                  fill="transparent" 
-                                  className="cursor-pointer touch-none"
-                                  onClick={(e) => { e.stopPropagation(); handleGizmoAction('Scale', 'sizeY', -1); }}
-                                  onPointerDown={(e) => handlePointerDown(e, 'Select', 'sizeY', p.sizeY)}
-                                  onPointerMove={handlePointerMove}
-                                  onPointerUp={handlePointerUp}
-                                  onPointerCancel={handlePointerUp}
-                                >
-                                  <title>Drag vertically or Click to Scale Height Down (-Y)</title>
-                                </circle>
-                              </g>
-
-                              {/* Width Right Red (+X Cube) */}
-                              <g>
-                                {renderCube(
-                                  scaleX_right_x, 
-                                  scaleX_right_y, 
-                                  isDraggingThis('Select', 'sizeX') ? '#fca5a5' : '#f87171', 
-                                  isDraggingThis('Select', 'sizeX') ? '#f87171' : '#ef4444', 
-                                  isDraggingThis('Select', 'sizeX') ? '#ef4444' : '#b91c1c', 
-                                  isDraggingThis('Select', 'sizeX')
-                                )}
-                                <circle 
-                                  cx={scaleX_right_x} 
-                                  cy={scaleX_right_y} 
-                                  r={(isDraggingThis('Select', 'sizeX') ? 14 : 10) * Math.max(0.65, scFactor)} 
-                                  fill="transparent" 
-                                  className="cursor-pointer touch-none"
-                                  onClick={(e) => { e.stopPropagation(); handleGizmoAction('Scale', 'sizeX', 1); }}
-                                  onPointerDown={(e) => handlePointerDown(e, 'Select', 'sizeX', p.sizeX)}
-                                  onPointerMove={handlePointerMove}
-                                  onPointerUp={handlePointerUp}
-                                  onPointerCancel={handlePointerUp}
-                                >
-                                  <title>Drag horizontally or Click to Scale Width Expand (+X)</title>
-                                </circle>
-                              </g>
-
-                              {/* Width Left Red (-X Cube) */}
-                              <g>
-                                {renderCube(
-                                  scaleX_left_x, 
-                                  scaleX_left_y, 
-                                  isDraggingThis('Select', 'sizeX') ? '#ef4444' : '#b91c1c', 
-                                  isDraggingThis('Select', 'sizeX') ? '#b91c1c' : '#dc2626', 
-                                  isDraggingThis('Select', 'sizeX') ? '#dc2626' : '#7f1d1d', 
-                                  isDraggingThis('Select', 'sizeX')
-                                )}
-                                <circle 
-                                  cx={scaleX_left_x} 
-                                  cy={scaleX_left_y} 
-                                  r={(isDraggingThis('Select', 'sizeX') ? 14 : 10) * Math.max(0.65, scFactor)} 
-                                  fill="transparent" 
-                                  className="cursor-pointer touch-none"
-                                  onClick={(e) => { e.stopPropagation(); handleGizmoAction('Scale', 'sizeX', -1); }}
-                                  onPointerDown={(e) => handlePointerDown(e, 'Select', 'sizeX', p.sizeX)}
-                                  onPointerMove={handlePointerMove}
-                                  onPointerUp={handlePointerUp}
-                                  onPointerCancel={handlePointerUp}
-                                >
-                                  <title>Drag horizontally or Click to Scale Width Narrow (-X)</title>
-                                </circle>
-                              </g>
-
-                              {/* Depth Blue (+Z Cube) */}
-                              <g>
-                                {renderCube(
-                                  scaleZ_fwd_x, 
-                                  scaleZ_fwd_y, 
-                                  isDraggingThis('Select', 'sizeZ') ? '#93c5fd' : '#60a5fa', 
-                                  isDraggingThis('Select', 'sizeZ') ? '#60a5fa' : '#3b82f6', 
-                                  isDraggingThis('Select', 'sizeZ') ? '#3b82f6' : '#1d4ed8', 
-                                  isDraggingThis('Select', 'sizeZ')
-                                )}
-                                <circle 
-                                  cx={scaleZ_fwd_x} 
-                                  cy={scaleZ_fwd_y} 
-                                  r={(isDraggingThis('Select', 'sizeZ') ? 14 : 10) * Math.max(0.65, scFactor)} 
-                                  fill="transparent" 
-                                  className="cursor-pointer touch-none"
-                                  onClick={(e) => { e.stopPropagation(); handleGizmoAction('Scale', 'sizeZ', 1); }}
-                                  onPointerDown={(e) => handlePointerDown(e, 'Select', 'sizeZ', p.sizeZ)}
-                                  onPointerMove={handlePointerMove}
-                                  onPointerUp={handlePointerUp}
-                                  onPointerCancel={handlePointerUp}
-                                >
-                                  <title>Drag diagonally or Click to Scale Depth Expand (+Z)</title>
-                                </circle>
-                              </g>
-
-                              {/* Depth Blue (-Z Cube) */}
-                              <g>
-                                {renderCube(
-                                  scaleZ_bwd_x, 
-                                  scaleZ_bwd_y, 
-                                  isDraggingThis('Select', 'sizeZ') ? '#3b82f6' : '#1d4ed8', 
-                                  isDraggingThis('Select', 'sizeZ') ? '#1d4ed8' : '#2563eb', 
-                                  isDraggingThis('Select', 'sizeZ') ? '#2563eb' : '#172554', 
-                                  isDraggingThis('Select', 'sizeZ')
-                                )}
-                                <circle 
-                                  cx={scaleZ_bwd_x} 
-                                  cy={scaleZ_bwd_y} 
-                                  r={(isDraggingThis('Select', 'sizeZ') ? 14 : 10) * Math.max(0.65, scFactor)} 
-                                  fill="transparent" 
-                                  className="cursor-pointer touch-none"
-                                  onClick={(e) => { e.stopPropagation(); handleGizmoAction('Scale', 'sizeZ', -1); }}
-                                  onPointerDown={(e) => handlePointerDown(e, 'Select', 'sizeZ', p.sizeZ)}
-                                  onPointerMove={handlePointerMove}
-                                  onPointerUp={handlePointerUp}
-                                  onPointerCancel={handlePointerUp}
-                                >
-                                  <title>Drag diagonally or Click to Scale Depth Shrink (-Z)</title>
-                                </circle>
+                                  ✨ {selectedPart.name}
+                                </text>
                               </g>
                             </g>
                           );
