@@ -26,7 +26,7 @@ import TradeTab from './components/TradeTab';
 import ShortGames from './components/ShortGames';
 import ScreenRecorder from './components/ScreenRecorder';
 
-import { Bell, Sparkles, Shield, X, HelpCircle, Flame, Play, ThumbsUp, Calendar, Award } from 'lucide-react';
+import { Bell, Sparkles, Shield, X, HelpCircle, Flame, Play, ThumbsUp, Calendar, Award, ChevronRight } from 'lucide-react';
 
 // --- Firebase Core SDK Imports ---
 import { auth, db, OperationType, handleFirestoreError } from './firebase';
@@ -40,6 +40,7 @@ import {
 import { 
   doc, 
   getDoc, 
+  getDocs,
   setDoc, 
   updateDoc, 
   collection, 
@@ -65,13 +66,16 @@ export default function App() {
   // --- Real-time Firebase Authentication & Databases Sync ---
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
   const [authLoading, setAuthLoading] = useState<boolean>(true);
+  const [signInError, setSignInError] = useState<string | null>(null);
 
   const handleSignIn = async () => {
+    setSignInError(null);
     const provider = new GoogleAuthProvider();
     try {
       await signInWithPopup(auth, provider);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Sign in failed:", error);
+      setSignInError(error?.message || error?.code || String(error));
     }
   };
 
@@ -100,6 +104,23 @@ export default function App() {
     return localStorage.getItem('blox_onboarding_completed') !== 'true';
   });
   const [onboardingStage, setOnboardingStage] = useState<'signin' | 'namescreen'>('signin');
+
+  // Follow Us modal states & auto-prompt once-a-day logic
+  const [showFollowUs, setShowFollowUs] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (onboardingOpen) return;
+
+    const todayStr = new Date().toDateString();
+    const lastPromptDate = localStorage.getItem('blox_last_follow_prompt_date');
+    if (lastPromptDate !== todayStr) {
+      const delayTimer = setTimeout(() => {
+        setShowFollowUs(true);
+        localStorage.setItem('blox_last_follow_prompt_date', todayStr);
+      }, 1800);
+      return () => clearTimeout(delayTimer);
+    }
+  }, [onboardingOpen]);
 
   // Skip step 1 if already authenticated when onboarding is open
   useEffect(() => {
@@ -188,6 +209,33 @@ export default function App() {
     if (cleanUsername === "@" || cleanUsername.length < 4) {
       setOnboardingError("Please enter a valid unique handle starting with @");
       return;
+    }
+
+    // Check if username is already in use by a platform builder/friend
+    const isUsedInMock = MOCK_FRIENDS.some(friend => friend.username.toLowerCase() === cleanUsername.toLowerCase());
+    if (isUsedInMock) {
+      setOnboardingError(`The username ${cleanUsername} is already reserved by a platform developer.`);
+      return;
+    }
+
+    // Query database to check if username is already registered by another user
+    try {
+      const q = query(collection(db, 'users'), where('username', '==', cleanUsername));
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        let taken = false;
+        querySnapshot.forEach((doc) => {
+          if (!currentUser || doc.id !== currentUser.uid) {
+            taken = true;
+          }
+        });
+        if (taken) {
+          setOnboardingError(`The username ${cleanUsername} is already taken by another player.`);
+          return;
+        }
+      }
+    } catch (dbErr) {
+      console.warn("Skipping online database unique username validation:", dbErr);
     }
 
     if (!tempGender) {
@@ -346,7 +394,7 @@ export default function App() {
     if (cached) {
       try { return JSON.parse(cached); } catch (e) {}
     }
-    return MOCK_FRIENDS;
+    return [];
   });
 
   useEffect(() => {
@@ -1171,6 +1219,7 @@ export default function App() {
               equippedItems={equippedItems}
               setEquippedItems={setEquippedItems}
               currentUser={currentUser}
+              onOpenFollowUs={() => setShowFollowUs(true)}
             />
           )}
 
@@ -1733,6 +1782,61 @@ export default function App() {
                     Continue with Google ID
                   </button>
 
+                  {signInError && (
+                    <div className="p-4 bg-red-950/40 border border-red-900/60 rounded-2xl text-left space-y-3.5 text-xs animate-shake">
+                      <div className="flex items-center justify-between border-b border-red-900/30 pb-2">
+                        <div className="flex items-center gap-2 text-red-400 font-bold">
+                          <span>⚠️ Sign-in Issue</span>
+                        </div>
+                        <span className="text-[9px] bg-red-900/50 text-red-200 py-0.5 px-2 rounded font-mono select-all uppercase">
+                          {signInError.includes('popup-blocked') ? 'Popup Blocked' : signInError.includes('cancelled-popup') ? 'Popup Closed' : 'Auth Error'}
+                        </span>
+                      </div>
+                      
+                      <p className="text-zinc-300 leading-relaxed text-[11px]">
+                        {signInError.includes('popup-blocked') || signInError.includes('cancelled-popup-request') ? (
+                          <>
+                            Your browser blocked or closed the popup. Inside the <strong>preview iframe</strong>, web browser rules prevent Google Auth Popups from showing up securely.
+                          </>
+                        ) : (
+                          <>
+                            The Firebase Authentication request returned an error. This is very common in sandbox or iframe environments.
+                          </>
+                        )}
+                      </p>
+
+                      <div className="flex flex-col gap-2 pt-1">
+                        <a
+                          href={window.location.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-center text-[11px] uppercase tracking-wider shadow-lg hover:shadow-indigo-950/50 transition-all duration-150 transform active:scale-95 flex items-center justify-center gap-2"
+                        >
+                          🚀 Open App in New Tab to Sign In
+                        </a>
+                        <p className="text-[10px] text-zinc-500 text-center leading-snug">
+                          Opening the application in a separate tab completely bypasses browser iframe security limits, making popups work perfectly!
+                        </p>
+                      </div>
+
+                      <div className="border-t border-zinc-800/80 pt-2 space-y-2">
+                        <span className="text-[9px] font-mono font-black text-red-400 uppercase tracking-widest block">Quick Troubleshooting Checklist:</span>
+                        <ul className="list-disc pl-4 space-y-1.5 text-zinc-400 text-[11.5px] leading-relaxed">
+                          <li>
+                            <strong className="text-zinc-200">Enable Google SSO in Firebase:</strong> Go to your <a href="https://console.firebase.google.com/" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline inline-underline">Firebase Console</a>, access <strong>Authentication &rarr; Sign-in method</strong>, and check that <strong>Google</strong> is toggled to Enabled.
+                          </li>
+                          <li>
+                            <strong className="text-zinc-200">Otherwise, Play as Guest:</strong> You can click the <strong>"Play as Guest"</strong> button below to play/test everything locally immediately!
+                          </li>
+                        </ul>
+                      </div>
+
+                      <div className="pt-2 border-t border-red-950/40 text-[9px] text-zinc-500 font-mono break-all line-clamp-2">
+                        System Details: {signInError}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="flex items-center justify-center gap-2 py-1 text-[10px] text-zinc-600 font-mono">
                     <span className="h-px bg-zinc-800 flex-1"></span>
                     <span>OR CONTINUE OFFLINE</span>
@@ -1746,7 +1850,7 @@ export default function App() {
                     }}
                     className="w-full py-3.5 px-4 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800/80 text-white font-medium rounded-2xl flex items-center justify-center gap-2 transition-all duration-200 transform active:scale-98 cursor-pointer"
                   >
-                    Enter Sandbox as Guest
+                    Play as Guest
                   </button>
                 </div>
               </div>
@@ -2008,6 +2112,298 @@ export default function App() {
           </motion.div>
         </div>
       )}
+
+      {/* Social Portal / "Follow Us On" Promo Modal */}
+      <AnimatePresence>
+        {showFollowUs && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-55 overflow-y-auto bg-[#131416]/98 flex items-center justify-center p-4 backdrop-blur-md"
+          >
+            {/* Ambient radiating gradients */}
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.12),transparent_50%)] pointer-events-none" />
+            <div className="absolute inset-0 roblox-grid opacity-10 pointer-events-none" />
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              transition={{ duration: 0.28, ease: 'easeOut' }}
+              className="w-full max-w-lg bg-[#191B1D] border border-zinc-800 rounded-3xl p-6 md:p-8 shadow-2xl relative overflow-hidden text-left"
+            >
+              {/* Decorative Indigo Top Ribbon Bar */}
+              <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-600" />
+
+              {/* Close Button ("Exit Page") */}
+              <button
+                onClick={() => {
+                  try {
+                    const ac = new (window.AudioContext || (window as any).webkitAudioContext)();
+                    const osc = ac.createOscillator();
+                    const gain = ac.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(440, ac.currentTime);
+                    gain.gain.setValueAtTime(0.04, ac.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.1);
+                    osc.connect(gain);
+                    gain.connect(ac.destination);
+                    osc.start();
+                    osc.stop(ac.currentTime + 0.1);
+                  } catch (e) {}
+                  setShowFollowUs(false);
+                }}
+                className="absolute top-4 right-4 p-2 text-zinc-400 hover:text-white bg-zinc-900/60 hover:bg-zinc-800 border border-zinc-805 border-zinc-800/85 hover:border-zinc-700 rounded-xl transition-all duration-150 cursor-pointer shadow-md group active:scale-95 flex items-center justify-center shrink-0"
+                title="Exit Page"
+                id="follow-us-close-button"
+              >
+                <X size={16} className="group-hover:rotate-90 transition-transform duration-200" />
+              </button>
+
+              {/* Header */}
+              <div className="text-center mb-6 mt-4 space-y-2">
+                <div className="inline-flex items-center justify-center w-14 h-14 bg-gradient-to-br from-indigo-600 to-purple-500 rounded-2xl shadow-lg shadow-indigo-950/20 mb-1.5 border border-indigo-400">
+                  <span className="text-2xl font-black text-white px-2 select-none">📢</span>
+                </div>
+                <h1 className="text-2xl md:text-3xl font-display font-black text-white tracking-tight uppercase">
+                  Follow Us & Feedback!
+                </h1>
+                <p className="text-xs text-zinc-400 max-w-sm mx-auto leading-relaxed">
+                  Join our official developer network, stay connected with creators, report bugs, and submit feature recommendations.
+                </p>
+              </div>
+
+              {/* External Links Grid */}
+              <div className="space-y-3.5">
+                {/* Discord */}
+                <a
+                  href="https://discord.gg/897d9NGaB"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => {
+                    try {
+                      const ac = new (window.AudioContext || (window as any).webkitAudioContext)();
+                      const osc = ac.createOscillator();
+                      const gain = ac.createGain();
+                      osc.type = 'sine';
+                      osc.frequency.setValueAtTime(587.33, ac.currentTime);
+                      gain.gain.setValueAtTime(0.03, ac.currentTime);
+                      gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.1);
+                      osc.connect(gain);
+                      gain.connect(ac.destination);
+                      osc.start();
+                      osc.stop(ac.currentTime + 0.1);
+                    } catch (e) {}
+                  }}
+                  className="flex items-center justify-between p-4 bg-zinc-900/60 border border-zinc-800/80 hover:bg-zinc-800/60 hover:border-indigo-500/50 rounded-2xl transition-all duration-200 group"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="w-11 h-11 bg-[#5865F2]/10 border border-[#5865F2]/20 rounded-xl flex items-center justify-center text-xl shrink-0 select-none group-hover:scale-105 transition-transform duration-200">
+                      👾
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="text-sm font-black text-white group-hover:text-indigo-300 transition-colors leading-snug">
+                        Discord Server
+                      </h3>
+                      <p className="text-[11px] text-zinc-500 truncate mt-0.5">
+                        Join our chat room & connect with the developer guild
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight size={15} className="text-zinc-500 group-hover:text-indigo-400 group-hover:translate-x-1 transition-all duration-200 shrink-0" />
+                </a>
+
+                {/* YouTube */}
+                <a
+                  href="https://youtube.com/@microbytz?si=a9GFi7wipVs93xzb"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => {
+                    try {
+                      const ac = new (window.AudioContext || (window as any).webkitAudioContext)();
+                      const osc = ac.createOscillator();
+                      const gain = ac.createGain();
+                      osc.type = 'sine';
+                      osc.frequency.setValueAtTime(659.25, ac.currentTime);
+                      gain.gain.setValueAtTime(0.03, ac.currentTime);
+                      gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.1);
+                      osc.connect(gain);
+                      gain.connect(ac.destination);
+                      osc.start();
+                      osc.stop(ac.currentTime + 0.1);
+                    } catch (e) {}
+                  }}
+                  className="flex items-center justify-between p-4 bg-zinc-900/60 border border-zinc-800/80 hover:bg-zinc-800/60 hover:border-red-500/50 rounded-2xl transition-all duration-200 group"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="w-11 h-11 bg-[#FF0000]/10 border border-[#FF0000]/20 rounded-xl flex items-center justify-center text-xl shrink-0 select-none group-hover:scale-105 transition-transform duration-200">
+                      🎥
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="text-sm font-black text-white group-hover:text-red-400 transition-colors leading-snug">
+                        YouTube Channel
+                      </h3>
+                      <p className="text-[11px] text-zinc-500 truncate mt-0.5">
+                        Subscribe for video tutorials & feature summaries
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight size={15} className="text-zinc-500 group-hover:text-red-400 group-hover:translate-x-1 transition-all duration-200 shrink-0" />
+                </a>
+
+                {/* Instagram */}
+                <a
+                  href="https://www.instagram.com/microbytz?igsh=MXc4bDA5bnVneGlqdA=="
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => {
+                    try {
+                      const ac = new (window.AudioContext || (window as any).webkitAudioContext)();
+                      const osc = ac.createOscillator();
+                      const gain = ac.createGain();
+                      osc.type = 'sine';
+                      osc.frequency.setValueAtTime(698.46, ac.currentTime);
+                      gain.gain.setValueAtTime(0.03, ac.currentTime);
+                      gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.1);
+                      osc.connect(gain);
+                      gain.connect(ac.destination);
+                      osc.start();
+                      osc.stop(ac.currentTime + 0.1);
+                    } catch (e) {}
+                  }}
+                  className="flex items-center justify-between p-4 bg-zinc-900/60 border border-zinc-800/80 hover:bg-zinc-800/60 hover:border-pink-500/50 rounded-2xl transition-all duration-200 group"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="w-11 h-11 bg-[#E1306C]/10 border border-[#E1306C]/20 rounded-xl flex items-center justify-center text-xl shrink-0 select-none group-hover:scale-105 transition-transform duration-200">
+                      📸
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="text-sm font-black text-white group-hover:text-pink-400 transition-colors leading-snug">
+                        Instagram Profile
+                      </h3>
+                      <p className="text-[11px] text-zinc-500 truncate mt-0.5">
+                        Check out virtual items, design reels, & daily posts
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight size={15} className="text-zinc-500 group-hover:text-pink-400 group-hover:translate-x-1 transition-all duration-200 shrink-0" />
+                </a>
+              </div>
+
+              {/* Feedback Links Section */}
+              <div className="pt-3 pb-2 border-t border-zinc-800/60 my-4 flex items-center justify-between">
+                <span className="text-[10px] font-mono tracking-widest text-zinc-500 font-bold uppercase">Feedback & Suggestions</span>
+                <span className="text-[9px] font-bold text-indigo-400 px-2 py-0.5 bg-indigo-500/10 rounded tracking-wider font-mono">SUPPORT</span>
+              </div>
+
+              <div className="space-y-3.5">
+                {/* Bug Report */}
+                <a
+                  href="https://discord.gg/FG46uS4JS"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => {
+                    try {
+                      const ac = new (window.AudioContext || (window as any).webkitAudioContext)();
+                      const osc = ac.createOscillator();
+                      const gain = ac.createGain();
+                      osc.type = 'sine';
+                      osc.frequency.setValueAtTime(523.25, ac.currentTime);
+                      gain.gain.setValueAtTime(0.03, ac.currentTime);
+                      gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.1);
+                      osc.connect(gain);
+                      gain.connect(ac.destination);
+                      osc.start();
+                      osc.stop(ac.currentTime + 0.1);
+                    } catch (e) {}
+                  }}
+                  className="flex items-center justify-between p-4 bg-zinc-900/60 border border-zinc-800/80 hover:bg-zinc-800/60 hover:border-red-500/50 rounded-2xl transition-all duration-200 group"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="w-11 h-11 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center justify-center text-xl shrink-0 select-none group-hover:scale-105 transition-transform duration-200">
+                      🐛
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="text-sm font-black text-white group-hover:text-red-400 transition-colors leading-snug">
+                        Report bug
+                      </h3>
+                      <p className="text-[11px] text-zinc-500 truncate mt-0.5">
+                        Found a bug? Tell us on our Discord server
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight size={15} className="text-zinc-500 group-hover:text-red-400 group-hover:translate-x-1 transition-all duration-200 shrink-0" />
+                </a>
+
+                {/* Feature Suggestions */}
+                <a
+                  href="https://discord.gg/bSeK5HkNN"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => {
+                    try {
+                      const ac = new (window.AudioContext || (window as any).webkitAudioContext)();
+                      const osc = ac.createOscillator();
+                      const gain = ac.createGain();
+                      osc.type = 'sine';
+                      osc.frequency.setValueAtTime(659.25, ac.currentTime);
+                      gain.gain.setValueAtTime(0.03, ac.currentTime);
+                      gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.1);
+                      osc.connect(gain);
+                      gain.connect(ac.destination);
+                      osc.start();
+                      osc.stop(ac.currentTime + 0.1);
+                    } catch (e) {}
+                  }}
+                  className="flex items-center justify-between p-4 bg-zinc-900/60 border border-zinc-800/80 hover:bg-zinc-800/60 hover:border-amber-500/50 rounded-2xl transition-all duration-200 group"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="w-11 h-11 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center justify-center text-xl shrink-0 select-none group-hover:scale-105 transition-transform duration-200">
+                      💡
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="text-sm font-black text-white group-hover:text-amber-300 transition-colors leading-snug">
+                        Suggest features
+                      </h3>
+                      <p className="text-[11px] text-zinc-500 truncate mt-0.5">
+                        Have ideas? Share feature recommendations
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight size={15} className="text-zinc-500 group-hover:text-amber-400 group-hover:translate-x-1 transition-all duration-200 shrink-0" />
+                </a>
+              </div>
+
+              {/* Exit page button at bottom */}
+              <div className="pt-5 pb-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    try {
+                      const ac = new (window.AudioContext || (window as any).webkitAudioContext)();
+                      const osc = ac.createOscillator();
+                      const gain = ac.createGain();
+                      osc.type = 'sine';
+                      osc.frequency.setValueAtTime(440, ac.currentTime);
+                      gain.gain.setValueAtTime(0.04, ac.currentTime);
+                      gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.1);
+                      osc.connect(gain);
+                      gain.connect(ac.destination);
+                      osc.start();
+                      osc.stop(ac.currentTime + 0.1);
+                    } catch (e) {}
+                    setShowFollowUs(false);
+                  }}
+                  className="w-full py-3 px-5 bg-gradient-to-r from-indigo-600 to-purple-500 hover:from-indigo-505 hover:to-purple-405 hover:from-indigo-500 hover:to-purple-400 text-white font-black rounded-xl text-xs uppercase tracking-widest shadow-md transition-all duration-200 transform active:scale-98 cursor-pointer text-center"
+                >
+                  Exit Page
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Global Stream Stream Screen Recorder Widget */}
       <ScreenRecorder />

@@ -47,6 +47,7 @@ interface DashboardProps {
   equippedItems?: string[];
   setEquippedItems?: React.Dispatch<React.SetStateAction<string[]>>;
   currentUser?: any;
+  onOpenFollowUs?: () => void;
 }
 
 interface BloxiterPost {
@@ -267,7 +268,8 @@ export default function Dashboard({
   setShopItems,
   equippedItems = [],
   setEquippedItems,
-  currentUser
+  currentUser,
+  onOpenFollowUs
 }: DashboardProps) {
   
   // Audio oscillator helper
@@ -1400,35 +1402,9 @@ export default function Dashboard({
         <div className="lg:col-span-12 space-y-7">
           
           {/* 1. Welcoming Hero Banner / Custom Profile Banner with customizable theme picker */}
-          <section className={`relative overflow-hidden rounded-xl border p-6 flex flex-col md:flex-row items-center justify-between gap-6 transition-all duration-350 min-h-[140px] ${selectedBannerStyle.bg}`}>
+          <section className={`relative overflow-hidden rounded-xl border p-6 flex flex-col md:flex-row items-center justify-between gap-6 transition-all duration-350 min-h-[140px] max-w-4xl mx-auto w-full ${selectedBannerStyle.bg}`}>
             {/* Subtle grid pattern background */}
             <div className="absolute inset-0 roblox-grid opacity-15 pointer-events-none" />
-
-            {/* Custom interactive color skin palette selectors */}
-            <div className="absolute top-3.5 right-4 z-20 flex items-center gap-1.5 bg-black/55 border border-[#393B3D] px-2 py-1 rounded text-[10px] text-gray-300">
-              <span className="font-semibold text-gray-400">Banner Skin:</span>
-              {[
-                { id: 'classic', icon: '♣️', color: 'bg-zinc-600' },
-                { id: 'redcliff', icon: '🛡️', color: 'bg-red-600' },
-                { id: 'korblox', icon: '💀', color: 'bg-sky-500' },
-                { id: 'golden', icon: '👑', color: 'bg-amber-500' },
-                { id: 'retro', icon: '🟥', color: 'bg-emerald-600' }
-              ].map(skinItem => (
-                <button
-                  key={skinItem.id}
-                  onClick={() => {
-                    setBannerSkin(skinItem.id);
-                    playFeedPitch(550, 0.04);
-                  }}
-                  className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] transition hover:scale-110 active:scale-95 border ${
-                    bannerSkin === skinItem.id ? 'border-white ring-1 ring-white/50' : 'border-transparent'
-                  } ${skinItem.color}`}
-                  title={`Unlock and display the ${skinItem.id} profile theme`}
-                >
-                  <span className="opacity-0 group-hover:opacity-100">{skinItem.icon}</span>
-                </button>
-              ))}
-            </div>
 
             <div className="relative flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left z-10 w-full sm:w-auto">
               {/* Circular big animated avatar thumbnail with customized glowing theme ring */}
@@ -1491,7 +1467,7 @@ export default function Dashboard({
             </div>
 
             {/* Create game call-to-action button */}
-            <div className="relative flex flex-col items-center sm:items-end shrink-0 w-full md:w-auto z-10">
+            <div className="relative flex flex-col items-center sm:items-end shrink-0 w-full md:w-auto z-10 gap-2">
               <button
                 onClick={() => onNavigateToTab('create')}
                 className="px-4 py-2 rounded bg-white text-black hover:bg-gray-200 text-xs font-bold shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5 group transform active:scale-95 w-full sm:w-auto text-center"
@@ -1499,7 +1475,46 @@ export default function Dashboard({
                 <Sparkles size={13} className="text-amber-500 animate-spin" style={{ animationDuration: '4s' }} />
                 Launch Developer Suite
               </button>
-              <span className="text-[9px] font-mono text-gray-500 mt-1.5 tracking-wider hidden md:block">Theme: {selectedBannerStyle.label}</span>
+              {onOpenFollowUs && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    playFeedPitch(600, 0.05);
+                    onOpenFollowUs();
+                  }}
+                  className="px-4 py-1.5 rounded bg-indigo-600 hover:bg-indigo-505 hover:bg-indigo-500 focus:bg-indigo-500 border border-[#0e0c80] hover:border-indigo-400 text-white text-[10px] font-black uppercase tracking-wider shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5 group transform active:scale-95 w-full sm:w-auto text-center"
+                >
+                  📢 Follow Us & Feedback
+                </button>
+              )}
+
+              {/* Custom interactive color skin palette selectors */}
+              <div className="flex items-center gap-1.5 bg-black/55 border border-[#393B3D] px-2 py-1 rounded text-[10px] text-gray-300 select-none">
+                <span className="font-semibold text-gray-400">Banner Skin:</span>
+                {[
+                  { id: 'classic', icon: '♣️', color: 'bg-zinc-600' },
+                  { id: 'redcliff', icon: '🛡️', color: 'bg-red-600' },
+                  { id: 'korblox', icon: '💀', color: 'bg-sky-500' },
+                  { id: 'golden', icon: '👑', color: 'bg-amber-500' },
+                  { id: 'retro', icon: '🟥', color: 'bg-emerald-600' }
+                ].map(skinItem => (
+                  <button
+                    key={skinItem.id}
+                    onClick={() => {
+                      setBannerSkin(skinItem.id);
+                      playFeedPitch(550, 0.04);
+                    }}
+                    className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] transition hover:scale-110 active:scale-95 border ${
+                      bannerSkin === skinItem.id ? 'border-white ring-1 ring-white/50' : 'border-transparent'
+                    } ${skinItem.color}`}
+                    title={`Unlock and display the ${skinItem.id} profile theme`}
+                  >
+                    <span className="opacity-0 group-hover:opacity-100">{skinItem.icon}</span>
+                  </button>
+                ))}
+              </div>
+
+              <span className="text-[9px] font-mono text-gray-500 mt-1 hover:text-gray-400 cursor-default select-none tracking-wider hidden md:block">Theme: {selectedBannerStyle.label}</span>
             </div>
           </section>
 
@@ -1561,52 +1576,64 @@ export default function Dashboard({
             </div>
 
             <div className="flex gap-3 overflow-x-auto pb-2 pt-1 snap-x scroll-smooth custom-scrollbar">
-              {unblockedFriends.map((friend) => {
-                const playingGame = friend.activeGameId ? games.find(g => g.id === friend.activeGameId) : undefined;
-                return (
-                  <div 
-                    key={friend.id}
-                    onClick={() => {
-                      playFeedPitch(500, 0.08);
-                      setSelectedProfileFriend(friend);
-                    }}
-                    className="flex-none w-26 snap-start text-center cursor-pointer group bg-[#111214]/90 hover:bg-[#202224] border border-[#303336] p-2 py-3 rounded-lg transition-all flex flex-col justify-between"
-                  >
-                    <div>
-                      <div className="relative mx-auto mb-2 select-none">
-                        <div className={`w-11 h-11 rounded-full ${friend.avatarColor} mx-auto flex items-center justify-center font-bold text-gray-950 ring-2 ring-[#393B3D]/50 group-hover:ring-white group-hover:scale-105 transition-all shadow`}>
-                          {friend.name.substring(0, 2).toUpperCase()}
+              {unblockedFriends.length === 0 ? (
+                <div className="flex-1 py-4 px-5 bg-[#111214]/60 border border-dashed border-[#303336] rounded-xl flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left select-none">
+                  <div className="text-3xl">🕵️‍♀️</div>
+                  <div className="space-y-1">
+                    <h4 className="text-xs font-black uppercase tracking-wider text-cyan-400">Your Friend Network is Empty</h4>
+                    <p className="text-[11px] text-gray-400 max-w-xl leading-relaxed">
+                      You haven player connections yet! Scroll down to the <strong className="text-zinc-300">Find Players & Send Friend Requests</strong> widget to connect with other developers instantly.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                unblockedFriends.map((friend) => {
+                  const playingGame = friend.activeGameId ? games.find(g => g.id === friend.activeGameId) : undefined;
+                  return (
+                    <div 
+                      key={friend.id}
+                      onClick={() => {
+                        playFeedPitch(500, 0.08);
+                        setSelectedProfileFriend(friend);
+                      }}
+                      className="flex-none w-26 snap-start text-center cursor-pointer group bg-[#111214]/90 hover:bg-[#202224] border border-[#303336] p-2 py-3 rounded-lg transition-all flex flex-col justify-between"
+                    >
+                      <div>
+                        <div className="relative mx-auto mb-2 select-none">
+                          <div className={`w-11 h-11 rounded-full ${friend.avatarColor} mx-auto flex items-center justify-center font-bold text-gray-950 ring-2 ring-[#393B3D]/50 group-hover:ring-white group-hover:scale-105 transition-all shadow`}>
+                            {friend.name.substring(0, 2).toUpperCase()}
+                          </div>
+                          
+                          <span className={`absolute bottom-0 right-5 w-3 h-3 rounded-full border-2 border-[#111214] ${
+                            friend.isOnline ? (playingGame ? 'bg-amber-400' : 'bg-green-500') : 'bg-gray-500'
+                          }`} title={friend.isOnline ? (playingGame ? 'Playing a game' : 'Online') : 'Offline'} />
+                        </div>
+
+                        <div className="font-extrabold text-[11px] text-gray-205 truncate px-0.5" title={friend.name}>
+                          {friend.name}
                         </div>
                         
-                        <span className={`absolute bottom-0 right-5 w-3 h-3 rounded-full border-2 border-[#111214] ${
-                          friend.isOnline ? (playingGame ? 'bg-amber-400' : 'bg-green-500') : 'bg-gray-500'
-                        }`} title={friend.isOnline ? (playingGame ? 'Playing a game' : 'Online') : 'Offline'} />
+                        {playingGame ? (
+                          <div className="text-[8.5px] text-amber-400 font-bold truncate h-3 mt-0.5 flex items-center justify-center gap-0.5" title={`Playing ${playingGame.title}`}>
+                            <span className="shrink-0">🎮</span>
+                            <span className="truncate">{playingGame.title}</span>
+                          </div>
+                        ) : (
+                          <div className="text-[9px] text-gray-455 truncate h-3 mt-0.5" title={friend.status}>
+                            {friend.status}
+                          </div>
+                        )}
                       </div>
 
-                      <div className="font-extrabold text-[11px] text-gray-205 truncate px-0.5" title={friend.name}>
-                        {friend.name}
+                      <div className="mt-2 pt-1.5 border-t border-[#303336]/40 shrink-0">
+                        <span className="text-[9.5px] font-black uppercase text-cyan-400 tracking-wider group-hover:text-cyan-300">
+                          Interact
+                        </span>
                       </div>
-                      
-                      {playingGame ? (
-                        <div className="text-[8.5px] text-amber-400 font-bold truncate h-3 mt-0.5 flex items-center justify-center gap-0.5" title={`Playing ${playingGame.title}`}>
-                          <span className="shrink-0">🎮</span>
-                          <span className="truncate">{playingGame.title}</span>
-                        </div>
-                      ) : (
-                        <div className="text-[9px] text-gray-455 truncate h-3 mt-0.5" title={friend.status}>
-                          {friend.status}
-                        </div>
-                      )}
                     </div>
-
-                    <div className="mt-2 pt-1.5 border-t border-[#303336]/40 shrink-0">
-                      <span className="text-[9.5px] font-black uppercase text-cyan-400 tracking-wider group-hover:text-cyan-300">
-                        Interact
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
 
               {/* Find guilds button */}
               <div 

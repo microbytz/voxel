@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UserExperience, MonetizationItem } from '../types';
 import { 
   Plus, 
@@ -77,6 +77,15 @@ export default function CreateDashboard({
   // Navigation tabs inside Developer Portal
   const [activeTab, setActiveTab] = useState<'creations' | 'monetization' | 'devex' | 'analytics'>('creations');
   const [analyticsSelectedExpId, setAnalyticsSelectedExpId] = useState<string>('all');
+  const [isInitializing, setIsInitializing] = useState<boolean>(true);
+
+  useEffect(() => {
+    // Simulate initial cloud data/experience loading delay
+    const timer = setTimeout(() => {
+      setIsInitializing(false);
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Experience creation states
   const [showNewExpModal, setShowNewExpModal] = useState(false);
@@ -468,170 +477,247 @@ export default function CreateDashboard({
 
       {/* TAB 1: CREATIONS GRID VIEW */}
       {activeTab === 'creations' && (
-        <>
-          {/* Quick Stats banner */}
-          <div className="bg-[#232527] border border-cyan-500/10 p-4 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-            <div className="space-y-0.5 text-xs">
-              <span className="font-extrabold uppercase text-cyan-400 tracking-wider text-[10px]">Developer Traffic Monitor</span>
-              <p className="text-gray-400">Your published experiences collect constant visitors which trigger randomized item store sales!</p>
+        isInitializing ? (
+          <>
+            {/* Quick Stats banner Loading Skeleton */}
+            <div className="bg-[#232527] border border-cyan-500/10 p-4 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 animate-pulse">
+              <div className="space-y-2 flex-1 w-full sm:w-auto">
+                <div className="h-4 bg-cyan-500/25 rounded w-1/4 min-w-[140px]" />
+                <div className="h-3 bg-zinc-700/60 rounded w-2/3" />
+              </div>
+              <div className="h-8.5 bg-zinc-700 rounded w-full sm:w-36 shrink-0" />
             </div>
-            <button
-              onClick={openNewExperienceModal}
-              className="px-4 py-2 rounded bg-white hover:bg-gray-200 text-black font-extrabold text-xs shadow-md cursor-pointer flex items-center gap-1.5 transform active:scale-95 transition-all w-full sm:w-auto text-center justify-center"
-            >
-              <Plus size={15} /> Create New Experience
-            </button>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {experiences.map((exp) => {
-              const passCount = (exp.gamepasses || []).length;
-              const prodCount = (exp.devProducts || []).length;
-              const hasMonetization = passCount + prodCount > 0;
-
-              return (
+            {/* Experiences lists loading skeletons */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[1, 2, 3].map((idx) => (
                 <div
-                  key={exp.id}
-                  className={`bg-[#232527] border rounded p-5 flex flex-col justify-between hover:border-gray-500 transition-colors ${exp.is2D ? 'border-cyan-500/20' : 'border-[#393B3D]'}`}
+                  key={idx}
+                  className="bg-[#232527] border border-[#393B3D]/30 rounded p-5 flex flex-col justify-between gap-5 animate-pulse"
                 >
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <div className="flex justify-between items-start">
-                      <span className={`p-2 rounded bg-[#111214] border flex items-center justify-center ${exp.is2D ? 'border-cyan-500/30 text-cyan-400' : 'border-[#393B3D] text-white'}`}>
-                        {exp.is2D ? <Code size={18} /> : <Folder size={18} />}
-                      </span>
-                      
-                      <div className="flex items-center gap-1.5">
-                        <span className={`px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider ${
-                          exp.is2D 
-                            ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' 
-                            : 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
-                        }`}>
-                          {exp.is2D ? '2D Block' : '3D Mesh'}
-                        </span>
-
-                        {/* Public vs Private Status Indicator tag */}
-                        <button
-                          onClick={() => {
-                            const nextStatus = exp.status === 'Public' ? 'Private' : 'Public';
-                            setExperiences(prev => prev.map(e => e.id === exp.id ? { ...e, status: nextStatus } : e));
-                          }}
-                          className={`px-2.5 py-0.5 rounded text-[10px] font-bold flex items-center gap-1 uppercase tracking-wide cursor-pointer select-none transition-all ${
-                            exp.status === 'Public'
-                              ? 'bg-green-600/25 text-green-400 border border-green-500/30'
-                              : 'bg-[#111214] text-gray-400 border border-[#393B3D]'
-                          }`}
-                          title="Toggle Status (Game must be Public to generate passive Dev Robux)"
-                        >
-                          {exp.status === 'Public' ? (
-                            <>
-                              <Globe size={9} /> Public
-                            </>
-                          ) : (
-                            <>
-                              <Lock size={9} /> Private
-                            </>
-                          )}
-                        </button>
-                      </div>
+                      <div className="w-9 h-9 rounded bg-[#111214] border border-zinc-800" />
+                      <div className="w-16 h-5 bg-zinc-800/60 rounded" />
                     </div>
-
-                    <div>
-                      <h3 className="font-bold text-sm text-white truncate mt-1">
-                        {exp.title}
-                      </h3>
-                      <p className="text-[11px] text-gray-400 mt-1 h-8 line-clamp-2 leading-relaxed">
-                        {exp.description}
-                      </p>
-                    </div>
-
-                    {/* Displays total items attached */}
-                    <div className="pt-1.5">
-                      {hasMonetization ? (
-                        <div className="flex items-center gap-2 text-[9px] font-mono text-emerald-400 font-bold bg-[#111214] px-2 py-1 rounded inline-flex border border-emerald-500/20">
-                          <Coins size={10} />
-                          <span>Stores Configured: {passCount} Gamepasses, {prodCount} DevProducts</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2 text-[9px] font-mono text-amber-500 font-bold bg-[#111214] px-2 py-1 rounded inline-flex border border-amber-500/10">
-                          <span>⚠️ No active monetization assets</span>
-                        </div>
-                      )}
+                    <div className="space-y-2 mt-1">
+                      <div className="h-4 bg-zinc-800/80 rounded w-3/4 animate-pulse" />
+                      <div className="h-3 bg-zinc-800/50 rounded w-full" />
+                      <div className="h-3 bg-zinc-800/35 rounded w-5/6" />
                     </div>
                   </div>
 
-                  {/* Quick Metrics stats */}
-                  <div className="border-t border-[#393B3D] pt-3.5 mt-4 space-y-3">
-                    <div className="grid grid-cols-2 gap-2 text-[10px] font-mono text-gray-500">
-                      <div>
-                        Visits: <span className="text-gray-300 font-bold">{exp.visits.toLocaleString()}</span>
-                      </div>
-                      <div className="text-right">
-                        Updated: <span className="text-gray-300">{exp.lastUpdated}</span>
-                      </div>
+                  <div className="border-t border-[#393B3D]/30 pt-4 space-y-3.5 mt-2">
+                    <div className="flex justify-between">
+                      <div className="h-3 bg-zinc-800 rounded w-1/3" />
+                      <div className="h-3 bg-zinc-800 rounded w-1/4" />
                     </div>
-
                     <div className="flex gap-2">
-                      <button
-                        onClick={exp.is2D ? onLaunchMock2DStudio : onLaunchMockStudio}
-                        className={`flex-1 px-3 py-1.5 bg-[#111214] hover:bg-[#323436] text-[11px] font-semibold rounded text-white flex items-center justify-center gap-1.5 transition-colors cursor-pointer border ${exp.is2D ? 'border-cyan-500/30' : 'border-[#393B3D]'}`}
-                      >
-                        <Hammer size={12} className={exp.is2D ? "text-cyan-400" : "text-white"} /> Boot Studio
-                      </button>
-
-                      <button
-                        onClick={() => {
-                          setSelectedExpId(exp.id);
-                          setActiveTab('monetization');
-                        }}
-                        className="p-1 px-2.5 bg-[#2a2d30] border border-[#393B3D] hover:bg-[#35393d] rounded text-white text-xs cursor-pointer flex items-center justify-center group"
-                        title="Configure Store Passes"
-                      >
-                        <Settings size={13} className="text-gray-400 group-hover:text-white transition" />
-                      </button>
+                      <div className="h-8 bg-zinc-800/50 rounded flex-1" />
+                      <div className="w-8 h-8 bg-zinc-800/50 rounded" />
                     </div>
                   </div>
                 </div>
-              );
-            })}
-          </div>
+              ))}
+            </div>
 
-          {/* Creation studio triggers guides */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
-            <div className="bg-[#232527] border border-[#393B3D] p-5 rounded-lg flex flex-col justify-between gap-4">
-              <div className="space-y-1.5">
-                <h4 className="font-bold text-sm text-white flex items-center gap-1.5 font-display">
-                  <Code size={16} className="text-indigo-400" /> 3D Spatial Vector Compiler
-                </h4>
-                <p className="text-xs text-gray-400 leading-relaxed">
-                  Design multi-plane obstacle courses, set materials to neon glow, apply gravity simulation parameters, and check vertex bounds. Compiled with Three.js web engine bootloader.
-                </p>
+            {/* Creation developer suite skeletons */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 animate-pulse">
+              <div className="bg-[#232527] border border-[#393B3D]/40 p-5 rounded-lg flex flex-col justify-between gap-5">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 bg-indigo-500/20 rounded animate-pulse" />
+                    <div className="h-4 bg-zinc-700 rounded w-1/3" />
+                  </div>
+                  <div className="space-y-1.5 pt-1">
+                    <div className="h-3 bg-zinc-700/80 rounded w-full" />
+                    <div className="h-3 bg-zinc-700/80 rounded w-5/6" />
+                  </div>
+                </div>
+                <div className="h-8 bg-zinc-700 rounded w-32" />
+              </div>
+
+              <div className="bg-[#232527] border border-cyan-500/10 p-5 rounded-lg flex flex-col justify-between gap-5">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 bg-cyan-500/20 rounded animate-pulse" />
+                    <div className="h-4 bg-zinc-700 rounded w-1/3" />
+                  </div>
+                  <div className="space-y-1.5 pt-1">
+                    <div className="h-3 bg-zinc-700/80 rounded w-full" />
+                    <div className="h-3 bg-zinc-700/80 rounded w-4/5" />
+                  </div>
+                </div>
+                <div className="h-8 bg-zinc-700 rounded w-32" />
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Quick Stats banner */}
+            <div className="bg-[#232527] border border-cyan-500/10 p-4 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <div className="space-y-0.5 text-xs">
+                <span className="font-extrabold uppercase text-cyan-400 tracking-wider text-[10px]">Developer Traffic Monitor</span>
+                <p className="text-gray-400">Your published experiences collect constant visitors which trigger randomized item store sales!</p>
               </div>
               <button
-                onClick={onLaunchMockStudio}
-                className="px-4 py-2 bg-[#111214] hover:bg-[#323436] text-white border border-[#393B3D] text-xs font-semibold rounded transition-all cursor-pointer flex items-center justify-center gap-1.5 self-start"
+                onClick={openNewExperienceModal}
+                className="px-4 py-2 rounded bg-white hover:bg-gray-200 text-black font-extrabold text-xs shadow-md cursor-pointer flex items-center gap-1.5 transform active:scale-95 transition-all w-full sm:w-auto text-center justify-center"
               >
-                <Laptop size={14} /> Open Empty 3D Baseplate
+                <Plus size={15} /> Create New Experience
               </button>
             </div>
 
-            <div className="bg-[#232527] border border-cyan-500/20 p-5 rounded-lg flex flex-col justify-between gap-4">
-              <div className="space-y-1.5">
-                <h4 className="font-bold text-sm text-white flex items-center gap-1.5 font-display">
-                  <Sparkles size={16} className="text-cyan-400 animate-pulse" /> 2D Scratch Arcade Studio
-                </h4>
-                <p className="text-xs text-gray-400 leading-relaxed">
-                  Snap block-assemblies into chains to program character costumes, motion coordinates, and AABB coordinate boundaries without text code syntax. Fast compilation with 2D HTML5 canvas.
-                </p>
-              </div>
-              <button
-                onClick={onLaunchMock2DStudio}
-                className="px-4 py-2 bg-[#111214] hover:bg-[#323436] text-cyan-400 border border-cyan-500/30 text-xs font-semibold rounded transition-all cursor-pointer flex items-center justify-center gap-1.5 self-start hover:border-cyan-400"
-              >
-                <Code size={14} /> Launch 2D Sandbox
-              </button>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {experiences.map((exp) => {
+                const passCount = (exp.gamepasses || []).length;
+                const prodCount = (exp.devProducts || []).length;
+                const hasMonetization = passCount + prodCount > 0;
+
+                return (
+                  <div
+                    key={exp.id}
+                    className={`bg-[#232527] border rounded p-5 flex flex-col justify-between hover:border-gray-500 transition-colors ${exp.is2D ? 'border-cyan-500/20' : 'border-[#393B3D]'}`}
+                  >
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-start">
+                        <span className={`p-2 rounded bg-[#111214] border flex items-center justify-center ${exp.is2D ? 'border-cyan-500/30 text-cyan-400' : 'border-[#393B3D] text-white'}`}>
+                          {exp.is2D ? <Code size={18} /> : <Folder size={18} />}
+                        </span>
+                        
+                        <div className="flex items-center gap-1.5">
+                          <span className={`px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider ${
+                            exp.is2D 
+                              ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' 
+                              : 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
+                          }`}>
+                            {exp.is2D ? '2D Block' : '3D Mesh'}
+                          </span>
+
+                          {/* Public vs Private Status Indicator tag */}
+                          <button
+                            onClick={() => {
+                              const nextStatus = exp.status === 'Public' ? 'Private' : 'Public';
+                              setExperiences(prev => prev.map(e => e.id === exp.id ? { ...e, status: nextStatus } : e));
+                            }}
+                            className={`px-2.5 py-0.5 rounded text-[10px] font-bold flex items-center gap-1 uppercase tracking-wide cursor-pointer select-none transition-all ${
+                              exp.status === 'Public'
+                                ? 'bg-green-600/25 text-green-400 border border-green-500/30'
+                                : 'bg-[#111214] text-gray-400 border border-[#393B3D]'
+                            }`}
+                            title="Toggle Status (Game must be Public to generate passive Dev Robux)"
+                          >
+                            {exp.status === 'Public' ? (
+                              <>
+                                <Globe size={9} /> Public
+                              </>
+                            ) : (
+                              <>
+                                <Lock size={9} /> Private
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h3 className="font-bold text-sm text-white truncate mt-1">
+                          {exp.title}
+                        </h3>
+                        <p className="text-[11px] text-gray-400 mt-1 h-8 line-clamp-2 leading-relaxed">
+                          {exp.description}
+                        </p>
+                      </div>
+
+                      {/* Displays total items attached */}
+                      <div className="pt-1.5">
+                        {hasMonetization ? (
+                          <div className="flex items-center gap-2 text-[9px] font-mono text-emerald-400 font-bold bg-[#111214] px-2 py-1 rounded inline-flex border border-emerald-500/20">
+                            <Coins size={10} />
+                            <span>Stores Configured: {passCount} Gamepasses, {prodCount} DevProducts</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 text-[9px] font-mono text-amber-500 font-bold bg-[#111214] px-2 py-1 rounded inline-flex border border-amber-500/10">
+                            <span>⚠️ No active monetization assets</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Quick Metrics stats */}
+                    <div className="border-t border-[#393B3D] pt-3.5 mt-4 space-y-3">
+                      <div className="grid grid-cols-2 gap-2 text-[10px] font-mono text-gray-500">
+                        <div>
+                          Visits: <span className="text-gray-300 font-bold">{exp.visits.toLocaleString()}</span>
+                        </div>
+                        <div className="text-right">
+                          Updated: <span className="text-gray-300">{exp.lastUpdated}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <button
+                          onClick={exp.is2D ? onLaunchMock2DStudio : onLaunchMockStudio}
+                          className={`flex-1 px-3 py-1.5 bg-[#111214] hover:bg-[#323436] text-[11px] font-semibold rounded text-white flex items-center justify-center gap-1.5 transition-colors cursor-pointer border ${exp.is2D ? 'border-cyan-500/30' : 'border-[#393B3D]'}`}
+                        >
+                          <Hammer size={12} className={exp.is2D ? "text-cyan-400" : "text-white"} /> Boot Studio
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setSelectedExpId(exp.id);
+                            setActiveTab('monetization');
+                          }}
+                          className="p-1 px-2.5 bg-[#2a2d30] border border-[#393B3D] hover:bg-[#35393d] rounded text-white text-xs cursor-pointer flex items-center justify-center group"
+                          title="Configure Store Passes"
+                        >
+                          <Settings size={13} className="text-gray-400 group-hover:text-white transition" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          </div>
-        </>
+
+            {/* Creation studio triggers guides */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+              <div className="bg-[#232527] border border-[#393B3D] p-5 rounded-lg flex flex-col justify-between gap-4">
+                <div className="space-y-1.5">
+                  <h4 className="font-bold text-sm text-white flex items-center gap-1.5 font-display">
+                    <Code size={16} className="text-indigo-400" /> 3D Spatial Vector Compiler
+                  </h4>
+                  <p className="text-xs text-gray-400 leading-relaxed">
+                    Design multi-plane obstacle courses, set materials to neon glow, apply gravity simulation parameters, and check vertex bounds. Compiled with Three.js web engine bootloader.
+                  </p>
+                </div>
+                <button
+                  onClick={onLaunchMockStudio}
+                  className="px-4 py-2 bg-[#111214] hover:bg-[#323436] text-white border border-[#393B3D] text-xs font-semibold rounded transition-all cursor-pointer flex items-center justify-center gap-1.5 self-start"
+                >
+                  <Laptop size={14} /> Open Empty 3D Baseplate
+                </button>
+              </div>
+
+              <div className="bg-[#232527] border border-cyan-500/20 p-5 rounded-lg flex flex-col justify-between gap-4">
+                <div className="space-y-1.5">
+                  <h4 className="font-bold text-sm text-white flex items-center gap-1.5 font-display">
+                    <Sparkles size={16} className="text-cyan-400 animate-pulse" /> 2D Scratch Arcade Studio
+                  </h4>
+                  <p className="text-xs text-gray-455 leading-relaxed">
+                    Snap block-assemblies into chains to program character costumes, motion coordinates, and AABB coordinate boundaries without text code syntax. Fast compilation with 2D HTML5 canvas.
+                  </p>
+                </div>
+                <button
+                  onClick={onLaunchMock2DStudio}
+                  className="px-4 py-2 bg-[#111214] hover:bg-[#323436] text-cyan-400 border border-cyan-500/30 text-xs font-semibold rounded transition-all cursor-pointer flex items-center justify-center gap-1.5 self-start hover:border-cyan-400"
+                >
+                  <Code size={14} /> Launch 2D Sandbox
+                </button>
+              </div>
+            </div>
+          </>
+        )
       )}
 
       {/* TAB 2: MONETIZATION STORES PANEL */}
