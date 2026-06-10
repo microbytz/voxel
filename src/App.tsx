@@ -49,8 +49,26 @@ import {
   where,
   orderBy,
   limit,
-  addDoc
+  addDoc,
+  deleteDoc
 } from 'firebase/firestore';
+
+// Custom Debounce Hook
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
 
 export default function App() {
   // Page routing
@@ -341,6 +359,12 @@ export default function App() {
   const [isEditingDescription, setIsEditingDescription] = useState<boolean>(false);
   const [editedDescription, setEditedDescription] = useState<string>("");
   const [isSavingDescription, setIsSavingDescription] = useState<boolean>(false);
+  const [isDeletingGame, setIsDeletingGame] = useState<boolean>(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
+
+  // Custom Debounce state
+  const debouncedDescription = useDebounce(editedDescription, 1000);
+  const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'typing' | 'saving' | 'saved' | 'error'>('idle');
 
   useEffect(() => {
     if (activeGame) {
@@ -349,7 +373,60 @@ export default function App() {
       setEditedDescription("");
     }
     setIsEditingDescription(false);
+    setShowDeleteConfirm(false);
+    setIsDeletingGame(false);
+    setAutoSaveStatus('idle');
   }, [activeGame]);
+
+  // Set typing status when content changes and is different from original
+  useEffect(() => {
+    if (!isEditingDescription || !activeGame) {
+      setAutoSaveStatus('idle');
+      return;
+    }
+    if (editedDescription !== (activeGame.description || "")) {
+      setAutoSaveStatus('typing');
+    } else {
+      setAutoSaveStatus('idle');
+    }
+  }, [editedDescription, isEditingDescription, activeGame]);
+
+  // Handle Debounced Auto-saving to Firestore
+  useEffect(() => {
+    if (!isEditingDescription || !activeGame) return;
+
+    const originalDesc = activeGame.description || "";
+    if (debouncedDescription === originalDesc) {
+      return;
+    }
+
+    const triggerAutoSave = async () => {
+      setAutoSaveStatus('saving');
+      setIsSavingDescription(true);
+      try {
+        const expRef = doc(db, 'publishedGames', activeGame.id);
+        await updateDoc(expRef, {
+          description: debouncedDescription,
+          lastUpdated: 'Just now'
+        });
+
+        // Sync local states immediately
+        setActiveGame(prev => prev ? { ...prev, description: debouncedDescription } : null);
+        setExperiences(prev => prev.map(exp => exp.id === activeGame.id ? { ...exp, description: debouncedDescription } : exp));
+        setGames(prev => prev.map(g => g.id === activeGame.id ? { ...g, description: debouncedDescription } : g));
+
+        setAutoSaveStatus('saved');
+      } catch (err: any) {
+        console.error("Failed to auto-save Firestore description:", err);
+        setAutoSaveStatus('error');
+        handleFirestoreError(err, OperationType.UPDATE, `publishedGames/${activeGame.id}`);
+      } finally {
+        setIsSavingDescription(false);
+      }
+    };
+
+    triggerAutoSave();
+  }, [debouncedDescription, isEditingDescription, activeGame]);
 
   const [runningGame, setRunningGame] = useState<Game | null>(null);
   const [runningStudio, setRunningStudio] = useState<boolean>(false);
@@ -897,6 +974,9 @@ export default function App() {
   const customSetMessages = (arg: any) => {
     setMessages((prev) => {
       const nextValue = typeof arg === 'function' ? arg(prev) : arg;
+      if (!Array.isArray(nextValue)) {
+        return nextValue;
+      }
       if (currentUser) {
         for (const chat of nextValue) {
           const prevChat = prev.find(p => p.id === chat.id);
@@ -938,6 +1018,9 @@ export default function App() {
   const customSetTrades = (arg: any) => {
     setTrades((prev) => {
       const nextValue = typeof arg === 'function' ? arg(prev) : arg;
+      if (!Array.isArray(nextValue)) {
+        return nextValue;
+      }
       if (currentUser) {
         for (const t of nextValue) {
           const prevT = prev.find(p => p.id === t.id);
@@ -958,6 +1041,9 @@ export default function App() {
   const customSetExperiences = (arg: any) => {
     setExperiences((prev) => {
       const nextValue = typeof arg === 'function' ? arg(prev) : arg;
+      if (!Array.isArray(nextValue)) {
+        return nextValue;
+      }
       const creatorId = currentUser ? currentUser.uid : "guest_user";
       const creatorName = currentUser ? (currentUser.displayName || "GamerPro") : "GuestBuilder";
       for (const exp of nextValue) {
@@ -1382,50 +1468,98 @@ export default function App() {
                       className="w-full text-xs text-gray-250 bg-[#111214] border border-[#393B3D] focus:border-amber-500 rounded p-3.5 outline-none font-sans min-h-[100px] resize-none"
                       placeholder="Write something cool about your game..."
                     />
-                    <div className="flex justify-end gap-2 text-xs">
-                      <button
-                        type="button"
-                        id="cancel-edit-desc-btn"
-                        onClick={() => {
-                          setIsEditingDescription(false);
-                          setEditedDescription(activeGame.description || "");
-                        }}
-                        className="px-3 py-1.5 bg-[#323436] hover:bg-[#3d4043] text-gray-300 rounded cursor-pointer transition-colors font-bold"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="button"
-                        id="save-edit-desc-btn"
-                        disabled={isSavingDescription}
-                        onClick={async () => {
-                          setIsSavingDescription(true);
-                          try {
-                            const expRef = doc(db, 'publishedGames', activeGame.id);
-                            await updateDoc(expRef, {
-                              description: editedDescription,
-                              lastUpdated: 'Just now'
-                            });
-                            
-                            // Live updates to local lists immediately
-                            setActiveGame(prev => prev ? { ...prev, description: editedDescription } : null);
-                            setExperiences(prev => prev.map(exp => exp.id === activeGame.id ? { ...exp, description: editedDescription } : exp));
-                            setGames(prev => prev.map(g => g.id === activeGame.id ? { ...g, description: editedDescription } : g));
-                            
+                    <div className="flex justify-between items-center gap-2 text-xs w-full">
+                      <div>
+                        {showDeleteConfirm ? (
+                          <div className="flex items-center gap-1.5 animate-fadeIn bg-red-950/20 border border-red-500/30 p-1.5 rounded">
+                            <span className="text-red-400 font-bold shrink-0 text-[11px]">⚠️ Permanent delete?</span>
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                if (!activeGame) return;
+                                setIsDeletingGame(true);
+                                try {
+                                  const expRef = doc(db, 'publishedGames', activeGame.id);
+                                  await deleteDoc(expRef);
+                                  
+                                  // Update local list states
+                                  setExperiences(prev => prev.filter(e => e.id !== activeGame.id));
+                                  setGames(prev => prev.filter(g => g.id !== activeGame.id));
+                                  
+                                  setActiveGame(null);
+                                  setToastMessage("🗑️ Experience deleted successfully!");
+                                  setTimeout(() => setToastMessage(null), 4000);
+                                } catch (err: any) {
+                                  console.error("Failed to delete Firestore experience:", err);
+                                  handleFirestoreError(err, OperationType.DELETE, `publishedGames/${activeGame.id}`);
+                                } finally {
+                                  setIsDeletingGame(false);
+                                  setShowDeleteConfirm(false);
+                                }
+                              }}
+                              disabled={isDeletingGame}
+                              className="px-2.5 py-1 bg-red-600 hover:bg-red-500 text-white rounded font-extrabold cursor-pointer transition-colors"
+                            >
+                              {isDeletingGame ? "Deleting..." : "Yes, Delete"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setShowDeleteConfirm(false)}
+                              className="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-gray-300 rounded cursor-pointer font-bold"
+                            >
+                              No
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setShowDeleteConfirm(true)}
+                            className="px-3 py-1.5 bg-red-900/40 hover:bg-red-600 border border-red-500/20 hover:border-red-500 text-red-400 hover:text-white rounded font-bold cursor-pointer transition-colors"
+                          >
+                            🗑️ Delete Game
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-3.5">
+                        {/* Elegant Auto-save feedback */}
+                        <div className="text-[11px] font-bold flex items-center gap-1.5">
+                          {autoSaveStatus === 'typing' && (
+                            <span className="text-amber-400 animate-pulse flex items-center gap-1.5">
+                              <span className="w-2 h-2 bg-amber-400 rounded-full animate-ping" />
+                              Typing...
+                            </span>
+                          )}
+                          {autoSaveStatus === 'saving' && (
+                            <span className="text-cyan-400 flex items-center gap-1.5">
+                              <span className="w-2 h-2 bg-cyan-400 rounded-full animate-ping" />
+                              Auto-saving...
+                            </span>
+                          )}
+                          {autoSaveStatus === 'saved' && (
+                            <span className="text-emerald-400 flex items-center gap-1">
+                              🟢 Saved to Cloud
+                            </span>
+                          )}
+                          {autoSaveStatus === 'error' && (
+                            <span className="text-red-400 flex items-center gap-1">
+                              ❌ Auto-save failed
+                            </span>
+                          )}
+                        </div>
+
+                        <button
+                          type="button"
+                          id="cancel-edit-desc-btn"
+                          onClick={() => {
                             setIsEditingDescription(false);
-                            setToastMessage("🎉 Description saved successfully!");
-                            setTimeout(() => setToastMessage(null), 4000);
-                          } catch (err: any) {
-                            console.error("Failed to update Firestore description:", err);
-                            handleFirestoreError(err, OperationType.UPDATE, `publishedGames/${activeGame.id}`);
-                          } finally {
-                            setIsSavingDescription(false);
-                          }
-                        }}
-                        className="px-4 py-1.5 bg-amber-500 hover:bg-amber-400 text-neutral-950 font-extrabold rounded cursor-pointer transition-colors flex items-center gap-1"
-                      >
-                        {isSavingDescription ? "Saving..." : "Save Changes"}
-                      </button>
+                            setShowDeleteConfirm(false);
+                          }}
+                          className="px-4 py-1.5 bg-neutral-900 border border-neutral-800 hover:bg-neutral-800 hover:border-cyan-500 hover:text-cyan-400 text-zinc-300 rounded cursor-pointer transition-all font-black text-[11px] uppercase tracking-wider"
+                        >
+                          Done Editing
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ) : (

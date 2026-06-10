@@ -1243,39 +1243,169 @@ export default function StudioMock({ onClose, onLaunchGame }: StudioMockProps) {
     const deltaX = e.clientX - dragState.startX;
     const deltaY = e.clientY - dragState.startY;
 
+    const selectedPart = parts.find(p => p.id === selectedPartId);
+    const startPrimarySnap = dragState.startParts.find(sp => sp.id === selectedPartId);
+
+    // Dynamic projection helper for dragging computations
+    const project3DForInteraction = (x: number, y: number, z: number) => {
+      const isPristineIso = testMode !== 'Edit' && cameraMode === 'Isometric' && freeLookYaw === 0 && freeLookPitch === 0;
+
+      let camX = 0;
+      let camY = 0;
+      let camZ = 0;
+      let yawRad = 0;
+      let pitchRad = 0;
+
+      if (!isPristineIso) {
+        if (cameraMode === '1st') {
+          camX = playerPos.x;
+          camY = playerPos.y + 1.25;
+          camZ = playerPos.z;
+          yawRad = (playerYaw + freeLookYaw) * Math.PI / 180;
+          pitchRad = (freeLookPitch) * Math.PI / 180;
+        } else if (cameraMode === '3rd') {
+          const dist = 14; 
+          yawRad = (playerYaw + freeLookYaw) * Math.PI / 180;
+          pitchRad = (20 + freeLookPitch) * Math.PI / 180;
+          
+          camX = playerPos.x - dist * Math.sin(yawRad) * Math.cos(pitchRad);
+          camZ = playerPos.z - dist * Math.cos(yawRad) * Math.cos(pitchRad);
+          camY = playerPos.y + 2.0 + dist * Math.sin(pitchRad);
+        } else {
+          // Orbit around selected part in edit or player in play
+          const targetX = testMode === 'Play' ? playerPos.x : (selectedPart ? selectedPart.x : 0);
+          const targetY = testMode === 'Play' ? playerPos.y : (selectedPart ? selectedPart.y : 1.5);
+          const targetZ = testMode === 'Play' ? playerPos.z : (selectedPart ? selectedPart.z : 0);
+          const dist = 38;
+          yawRad = (-30 + freeLookYaw) * Math.PI / 180;
+          pitchRad = (30 + freeLookPitch) * Math.PI / 180;
+          
+          camX = targetX - dist * Math.sin(yawRad) * Math.cos(pitchRad);
+          camZ = targetZ - dist * Math.cos(yawRad) * Math.cos(pitchRad);
+          camY = targetY + dist * Math.sin(pitchRad);
+        }
+      }
+
+      const cosY = Math.cos(yawRad);
+      const sinY = Math.sin(yawRad);
+      const cosX = Math.cos(pitchRad);
+      const sinX = Math.sin(pitchRad);
+
+      if (isHybrid2DMode) {
+        const xCenter = testMode === 'Play' ? playerPos.x : (selectedPart ? selectedPart.x : 0);
+        const yCenter = testMode === 'Play' ? playerPos.y : (selectedPart ? selectedPart.y : 6);
+        return {
+          x: 200 + (x - xCenter) * 11,
+          y: 130 - (y - yCenter) * 11,
+          depth: z,
+          scale: 1.1,
+          clipped: false
+        };
+      }
+
+      if (isPristineIso) {
+        return {
+          x: 200 + (x * 5) - (z * 2.5),
+          y: 190 - (y * 5) + (z * 1.5),
+          depth: z,
+          scale: 1,
+          clipped: false
+        };
+      }
+
+      const dx = x - camX;
+      const dy = y - camY;
+      const dz = z - camZ;
+
+      const rx1 = dx * cosY - dz * sinY;
+      const rz1 = dx * sinY + dz * cosY;
+
+      const ry1 = dy * cosX + rz1 * sinX;
+      const rz2 = -dy * sinX + rz1 * cosX;
+
+      const nearClipping = 0.5;
+      if (rz2 < nearClipping) {
+        return { x: -9999, y: -9999, depth: -9999, scale: 0.1, clipped: true };
+      }
+
+      const perspectiveScale = 220 / rz2;
+      return {
+        x: 200 + rx1 * perspectiveScale,
+        y: 120 - ry1 * perspectiveScale,
+        depth: rz2,
+        scale: perspectiveScale / 10,
+        clipped: false
+      };
+    };
+
     setParts(prev => prev.map(p => {
       const startSnap = dragState.startParts.find(sp => sp.id === p.id);
-      if (startSnap) {
-        if (dragState.type === 'Move') {
+      if (startSnap && startPrimarySnap) {
+        if (dragState.type === 'Move' || dragState.type === 'Scale' || dragState.type === 'Select') {
+          let rx = 0;
+          let ry = 0;
+          let rz = 0;
+
+          let axisName = dragState.axis;
+          if (axisName === 'x' || axisName === 'sizeX') rx = 1;
+          else if (axisName === 'y' || axisName === 'sizeY') ry = 1;
+          else if (axisName === 'z' || axisName === 'sizeZ') rz = 1;
+
+          // Project the start location and 1-unit offset
+          const p0 = project3DForInteraction(startPrimarySnap.x, startPrimarySnap.y, startPrimarySnap.z);
+          const p1 = project3DForInteraction(startPrimarySnap.x + rx, startPrimarySnap.y + ry, startPrimarySnap.z + rz);
+
+          const adx = p1.x - p0.x;
+          const ady = p1.y - p0.y;
+          const alen = Math.sqrt(adx * adx + ady * ady);
+
           let change = 0;
-          if (dragState.axis === 'y') {
-            // Dragging up (decreasing clientY) increases Y in our 3D space
-            change = -deltaY / (4 * zoom);
-          } else if (dragState.axis === 'x') {
-            // Dragging right increases X
-            change = deltaX / (4 * zoom);
-          } else if (dragState.axis === 'z') {
-            // Dragging down-left (positive deltaY, negative deltaX) increases Z
-            const zProjection = (-deltaX * 2.5 + deltaY * 1.5) / (8.5 * zoom);
-            change = zProjection;
-          }
-
-          let originalVal = 0;
-          if (dragState.axis === 'y') originalVal = startSnap.y;
-          else if (dragState.axis === 'x') originalVal = startSnap.x;
-          else if (dragState.axis === 'z') originalVal = startSnap.z;
-
-          let newValue = originalVal + change;
-          if (!e.shiftKey) {
-            newValue = Math.round(newValue * 2) / 2; // Snap to nearest 0.5 studs
+          if (alen > 0.05) {
+            const udx = adx / alen;
+            const udy = ady / alen;
+            const projLength = deltaX * udx + deltaY * udy;
+            change = projLength / (4 * zoom);
           } else {
-            newValue = Math.round(newValue * 10) / 10; // Precision 0.1 studs
+            if (axisName === 'x' || axisName === 'sizeX') change = deltaX / (4 * zoom);
+            else if (axisName === 'y' || axisName === 'sizeY') change = -deltaY / (4 * zoom);
+            else {
+              const zProjection = (-deltaX * 2.5 + deltaY * 1.5) / (8.5 * zoom);
+              change = zProjection;
+            }
           }
 
-          if (dragState.axis === 'y') {
-            newValue = Math.max(-10, newValue);
+          if (dragState.type === 'Move') {
+            let originalVal = 0;
+            if (axisName === 'y') originalVal = startSnap.y;
+            else if (axisName === 'x') originalVal = startSnap.x;
+            else if (axisName === 'z') originalVal = startSnap.z;
+
+            let newValue = originalVal + change;
+            if (!e.shiftKey) {
+              newValue = Math.round(newValue * 2) / 2; // Snap to nearest 0.5 studs
+            } else {
+              newValue = Math.round(newValue * 10) / 10; // Precision 0.1 studs
+            }
+
+            if (axisName === 'y') {
+              newValue = Math.max(-10, newValue);
+            }
+            return { ...p, [axisName]: newValue };
+          } else {
+            // Scale
+            let originalVal = 0;
+            if (axisName === 'sizeY') originalVal = startSnap.sizeY;
+            else if (axisName === 'sizeX') originalVal = startSnap.sizeX;
+            else if (axisName === 'sizeZ') originalVal = startSnap.sizeZ;
+
+            let newValue = originalVal + change;
+            if (!e.shiftKey) {
+              newValue = Math.max(1, Math.min(50, Math.round(newValue)));
+            } else {
+              newValue = Math.max(1, Math.min(50, Math.round(newValue * 2) / 2));
+            }
+            return { ...p, [axisName]: newValue };
           }
-          return { ...p, [dragState.axis]: newValue };
 
         } else if (dragState.type === 'Rotate') {
           // Horizontal dragging controls rotation degrees continuously
@@ -1285,30 +1415,6 @@ export default function StudioMock({ onClose, onLaunchGame }: StudioMockProps) {
             newValue = Math.round(newValue / 15) * 15; // Snaps to standard 15 degree increments
           }
           return { ...p, rotation: newValue };
-
-        } else if (dragState.type === 'Scale' || dragState.type === 'Select') {
-          let change = 0;
-          if (dragState.axis === 'sizeY') {
-            change = -deltaY / (4 * zoom);
-          } else if (dragState.axis === 'sizeX') {
-            change = deltaX / (4 * zoom);
-          } else if (dragState.axis === 'sizeZ') {
-            const zProjection = (-deltaX * 2.5 + deltaY * 1.5) / (8.5 * zoom);
-            change = zProjection;
-          }
-
-          let originalVal = 0;
-          if (dragState.axis === 'sizeY') originalVal = startSnap.sizeY;
-          else if (dragState.axis === 'sizeX') originalVal = startSnap.sizeX;
-          else if (dragState.axis === 'sizeZ') originalVal = startSnap.sizeZ;
-
-          let newValue = originalVal + change;
-          if (!e.shiftKey) {
-            newValue = Math.max(1, Math.min(50, Math.round(newValue)));
-          } else {
-            newValue = Math.max(1, Math.min(50, Math.round(newValue * 2) / 2));
-          }
-          return { ...p, [dragState.axis]: newValue };
         }
       }
       return p;
@@ -3631,7 +3737,7 @@ export default function StudioMock({ onClose, onLaunchGame }: StudioMockProps) {
                     </filter>
                   </defs>
                   
-                  <g transform={`scale(${zoom})`} style={{ transformOrigin: '200px 120px', transition: 'transform 0.15s ease-out' }}>
+                  <g transform={`scale(${zoom})`} style={{ transformOrigin: '200px 120px', transition: dragState ? 'none' : 'transform 0.15s ease-out' }}>
                     
                     {/* ENDLESS PERSPECTIVE GROUND GRID SYSTEM (Y = 0 Floor Plane) */}
                     <g id="3d-modeling-grid" className="opacity-90">

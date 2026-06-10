@@ -25,7 +25,8 @@ import {
   Trash2,
   TrendingUp,
   ArrowUpRight,
-  HelpCircle
+  HelpCircle,
+  Rocket
 } from 'lucide-react';
 
 import {
@@ -108,6 +109,30 @@ export default function CreateDashboard({
   // DevEx Cashout feedback states
   const [cashoutAmount, setCashoutAmount] = useState<number>(10000); // Default 10k Dev Robux
   const [cashoutNotice, setCashoutNotice] = useState<string | null>(null);
+
+  // Deploy feedback states
+  const [deployToast, setDeployToast] = useState<{ show: boolean; title: string } | null>(null);
+
+  const handleQuickDeploy = (exp: UserExperience) => {
+    // Set Status to Public
+    setExperiences(prev => prev.map(e => e.id === exp.id ? { ...e, status: 'Public' } : e));
+    
+    // Play sweet synth chords
+    triggerAudioTick(523.25, 0.1, 'sine'); // C5
+    setTimeout(() => triggerAudioTick(659.25, 0.1, 'sine'), 80); // E5
+    setTimeout(() => triggerAudioTick(783.99, 0.25, 'sine'), 160); // G5
+
+    // Show toast notification
+    setDeployToast({
+      show: true,
+      title: `"${exp.title}" has been successfully deployed to Public status! Passive visitors will now begin to gather and trigger randomized store sales.`
+    });
+
+    // Auto-hide toast after 5s
+    setTimeout(() => {
+      setDeployToast(null);
+    }, 5000);
+  };
 
   // Open creation modal
   const openNewExperienceModal = () => {
@@ -395,6 +420,23 @@ export default function CreateDashboard({
   return (
     <div className="w-full text-gray-200 p-4 md:p-6 space-y-6 max-w-7xl mx-auto font-sans animate-fadeIn">
       
+      {/* Deploy success toast notification */}
+      {deployToast && (
+        <div className="fixed top-6 right-6 z-100 max-w-sm bg-[#1b1c1e] border-2 border-emerald-500 rounded-xl p-4.5 shadow-2xl flex items-start gap-3.5 text-xs leading-relaxed text-zinc-200 animate-slideDown">
+          <span className="text-xl shrink-0 animate-bounce">🚀</span>
+          <div className="flex-1 space-y-0.5">
+            <span className="font-black text-emerald-450 block uppercase tracking-wider text-[10px]">Deploy Successful!</span>
+            <p className="text-[11px] text-zinc-300 leading-normal">{deployToast.title}</p>
+          </div>
+          <button 
+            onClick={() => setDeployToast(null)} 
+            className="text-gray-500 hover:text-white shrink-0 p-1 hover:bg-zinc-805 rounded transition cursor-pointer"
+          >
+            <X size={13} />
+          </button>
+        </div>
+      )}
+
       {/* Dynamic DevEx Banner info */}
       {cashoutNotice && (
         <div className="bg-emerald-950/45 border-2 border-emerald-500 text-emerald-300 px-4 py-3.5 rounded-lg flex items-start gap-3 mt-1 text-xs font-semibold shadow-lg animate-slideDown">
@@ -674,6 +716,19 @@ export default function CreateDashboard({
                           <Settings size={13} className="text-gray-400 group-hover:text-white transition" />
                         </button>
                       </div>
+
+                      {exp.status === 'Private' ? (
+                        <button
+                          onClick={() => handleQuickDeploy(exp)}
+                          className="w-full py-1.5 px-3 bg-[#111214] hover:bg-[#202224] border border-emerald-505/30 hover:border-emerald-400 text-emerald-400 hover:text-emerald-300 text-[11px] font-bold rounded flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                        >
+                          <Rocket size={12} className="text-emerald-400 animate-pulse" /> Rocket Deploy Public
+                        </button>
+                      ) : (
+                        <div className="w-full py-1.5 px-3 bg-emerald-950/20 border border-emerald-900/30 text-emerald-400 text-[10px] font-black rounded flex items-center justify-center gap-1 cursor-default font-mono">
+                          <span>🟢 ACTIVE & PUBLIC</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
