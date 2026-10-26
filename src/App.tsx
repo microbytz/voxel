@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   MOCK_GAMES, 
@@ -15,15 +15,17 @@ import { Game, Friend, ShopItem, Message, Trade, UserExperience } from './types'
 import Topbar from './components/Topbar';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
-import Discover from './components/Discover';
-import GameSimulator from './components/GameSimulator';
-import AvatarCustomizer from './components/AvatarCustomizer';
-import CreateDashboard from './components/CreateDashboard';
-import StudioMock from './components/StudioMock';
-import Studio2D from './components/Studio2D';
-import MessagesTab from './components/MessagesTab';
-import TradeTab from './components/TradeTab';
-import ShortGames from './components/ShortGames';
+
+// Heavy secondary screens load on demand to keep the initial bundle small
+const Discover = lazy(() => import('./components/Discover'));
+const GameSimulator = lazy(() => import('./components/GameSimulator'));
+const AvatarCustomizer = lazy(() => import('./components/AvatarCustomizer'));
+const CreateDashboard = lazy(() => import('./components/CreateDashboard'));
+const StudioMock = lazy(() => import('./components/StudioMock'));
+const Studio2D = lazy(() => import('./components/Studio2D'));
+const MessagesTab = lazy(() => import('./components/MessagesTab'));
+const TradeTab = lazy(() => import('./components/TradeTab'));
+const ShortGames = lazy(() => import('./components/ShortGames'));
 import ScreenRecorder from './components/ScreenRecorder';
 
 import { Bell, Sparkles, Shield, X, HelpCircle, Flame, Play, ThumbsUp, Calendar, Award, ChevronRight } from 'lucide-react';
@@ -1282,6 +1284,7 @@ export default function App() {
         sidebarCollapsed ? 'md:pl-16' : 'md:pl-60'
       }`}>
         <div className="pb-16">
+          <Suspense fallback={null}>
           {(activeTab === 'home' || activeTab === 'bloxiter' || activeTab === 'clans') && (
             <Dashboard 
               userName={activeName}
@@ -1380,6 +1383,7 @@ export default function App() {
               onPlayGame={(g) => setActiveGame(g)}
             />
           )}
+          </Suspense>
         </div>
       </main>
 
@@ -1670,6 +1674,7 @@ export default function App() {
 
       {/* 4. IMMERSIVE PLAY GAME CLIENT WINDOW (Canvas Game Simulator sandbox overlay) */}
       {runningGame && (
+        <Suspense fallback={null}>
         <GameSimulator 
           game={runningGame}
           onClose={() => setRunningGame(null)}
@@ -1685,10 +1690,12 @@ export default function App() {
             setGames(prev => prev.map(g => g.id === updated.id ? updated : g));
           }}
         />
+        </Suspense>
       )}
 
       {/* 5. IMMERSIVE VOXEL STUDIO IDE WORKSPACE overlay */}
       {runningStudio && (
+        <Suspense fallback={null}>
         <StudioMock 
           onClose={() => setRunningStudio(false)}
           creatorName={activeName}
@@ -1701,10 +1708,12 @@ export default function App() {
             });
           }}
         />
+        </Suspense>
       )}
 
       {/* 5B. NO-CODE 2D ARCADE STUDIO WORKSPACE overlay */}
       {running2DStudio && (
+        <Suspense fallback={null}>
         <Studio2D 
           onClose={() => setRunning2DStudio(false)}
           creatorName={activeName}
@@ -1740,6 +1749,7 @@ export default function App() {
             });
           }}
         />
+        </Suspense>
       )}
 
       {/* 6. FLOATING NOTIFICATION SLIDEOVER SIDE SHEET */}
@@ -2541,7 +2551,7 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* Global Stream Stream Screen Recorder Widget */}
+      {/* Global Creator Stream screen recorder widget */}
       <ScreenRecorder />
 
     </div>
