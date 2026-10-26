@@ -317,7 +317,7 @@ export default function App() {
         {
           id: `welcome_${Date.now()}`,
           title: "🎉 Sandbox Profile Initiated",
-          text: `Welcome! Registered to Bloxland as ${nameVal} (${cleanUsername})! Your dashboard is now fully unlocked.`,
+          text: `Welcome! Registered to Voxel as ${nameVal} (${cleanUsername})! Your dashboard is now fully unlocked.`,
           time: "Just now",
           icon: "🚀",
           createdAt: Date.now()
@@ -1339,8 +1339,8 @@ export default function App() {
             <CreateDashboard 
               experiences={experiences}
               setExperiences={customSetExperiences}
-              onLaunchMockStudio={() => setRunningStudio(true)}
-              onLaunchMock2DStudio={() => setRunning2DStudio(true)}
+              onLaunchMockStudio={() => { setRunning2DStudio(false); setRunningStudio(true); }}
+              onLaunchMock2DStudio={() => { setRunningStudio(false); setRunning2DStudio(true); }}
               devRobux={devRobux}
               setDevRobux={setDevRobux}
               devexUSD={devexUSD}
@@ -1691,6 +1691,7 @@ export default function App() {
       {runningStudio && (
         <StudioMock 
           onClose={() => setRunningStudio(false)}
+          creatorName={activeName}
           onLaunchGame={(game) => {
             setRunningStudio(false);
             setRunningGame(game);
@@ -1706,6 +1707,7 @@ export default function App() {
       {running2DStudio && (
         <Studio2D 
           onClose={() => setRunning2DStudio(false)}
+          creatorName={activeName}
           onPublish={(newGame) => {
             // Append immediately to reactive games list state
             setGames(prev => {
@@ -1867,7 +1869,7 @@ export default function App() {
                 <span className="text-2xl font-black text-white px-2 uppercase select-none">B</span>
               </div>
               <h1 className="text-3xl font-display font-black text-white tracking-tight uppercase">
-                Bloxland Core
+                Voxel Core
               </h1>
               <p className="text-xs text-zinc-400 max-w-sm mx-auto leading-relaxed">
                 Enter the multiplayer trading hub, craft rare customizable gear, and publish multi-dimensional arcade games.

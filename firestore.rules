@@ -52,14 +52,17 @@ service cloud.firestore {
       allow get: if isSignedIn() && (request.auth.uid in resource.data.participants);
       allow list: if isSignedIn() && (request.auth.uid in resource.data.participants);
       allow create: if isSignedIn() && (request.auth.uid in request.resource.data.participants) && isValidChatChannel(request.resource.data);
-      allow update: if isSignedIn() && (request.auth.uid in resource.data.participants) && (request.auth.uid in request.resource.data.participants);
+      // Participants may only write message-side fields; the participants list must stay unchanged
+      allow update: if isSignedIn() && (request.auth.uid in resource.data.participants)
+                    && request.resource.data.participants == resource.data.participants;
     }
 
     function isValidChatChannel(data) {
       return data.keys().hasAll(['participants'])
         && data.participants is list
-        && data.participants.size() <= 2
-        && (data.participants.size() == 0 || data.participants[0] is string);
+        && data.participants.size() == 2
+        && data.participants[0] is string
+        && data.participants[1] is string;
     }
 
     // --- Chat Messages Subcollection ---
@@ -80,9 +83,12 @@ service cloud.firestore {
     match /trades/{tradeId} {
       allow get: if isSignedIn() && (request.auth.uid == resource.data.senderId || request.auth.uid == resource.data.receiverId);
       allow list: if isSignedIn() && (request.auth.uid == resource.data.senderId || request.auth.uid == resource.data.receiverId);
+      // Real users may only send trades as themselves; simulated ('f2_'-prefixed)
+      // senders may only appear on trades addressed TO the caller.
       allow create: if isSignedIn() && (
-        request.auth.uid == request.resource.data.senderId || 
-        (request.auth.uid == request.resource.data.receiverId && request.resource.data.senderId.startsWith('f2_'))
+        request.auth.uid == request.resource.data.senderId ||
+        (request.auth.uid == request.resource.data.receiverId
+          && request.resource.data.senderId.matches('^f2_[a-zA-Z0-9_\\-]{1,60}$'))
       ) && isValidTrade(request.resource.data);
       allow update: if isSignedIn() && (
         // Receiver can accept/decline

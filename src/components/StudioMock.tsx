@@ -56,6 +56,7 @@ interface Part {
 interface StudioMockProps {
   onClose: () => void;
   onLaunchGame?: (game: any) => void;
+  creatorName?: string;
 }
 
 // Specialty Block configs - kids friendly metadata
@@ -359,7 +360,7 @@ const floodFillGrid = (grid: string[][], startR: number, startC: number, targetC
   return nextGrid;
 };
 
-export default function StudioMock({ onClose, onLaunchGame }: StudioMockProps) {
+export default function StudioMock({ onClose, onLaunchGame, creatorName }: StudioMockProps) {
   const [booting, setBooting] = useState(true);
   const [bootLog, setBootLog] = useState("");
   const [bootStep, setBootStep] = useState(0);
@@ -2675,7 +2676,7 @@ export default function StudioMock({ onClose, onLaunchGame }: StudioMockProps) {
                   thumbnail: 'from-amber-500 via-orange-600 to-red-600',
                   upvoteRatio: 100,
                   activePlayers: 1,
-                  creator: 'GamerProX',
+                  creator: creatorName || 'GamerProX',
                   description: 'A custom, fully-simulated 3D blockbuster adventure built inside Voxel Studio!',
                   category: 'Obby',
                   visits: 12,
