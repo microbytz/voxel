@@ -82,9 +82,10 @@ interface Studio2DProps {
     is2D: boolean;
   }) => void;
   onLaunchGame?: (game: any) => void;
+  creatorName?: string;
 }
 
-export default function Studio2D({ onClose, onPublish, onLaunchGame }: Studio2DProps) {
+export default function Studio2D({ onClose, onPublish, onLaunchGame, creatorName }: Studio2DProps) {
   // Preset list of available Scratch-like block blueprints
   const TOOLBOX_BLOCKS: BlockDefinition[] = [
     // Events
@@ -4383,7 +4384,7 @@ export default function Studio2D({ onClose, onPublish, onLaunchGame }: Studio2DP
                   thumbnail: 'from-cyan-600 to-blue-850 border-cyan-400',
                   upvoteRatio: 100,
                   activePlayers: 1,
-                  creator: 'GamerProX',
+                  creator: creatorName || 'GamerProX',
                   description: 'An interactive 2D arcade project launched right from the No-Code Editor!',
                   category: 'Action',
                   visits: 12,
@@ -5049,7 +5050,7 @@ export default function Studio2D({ onClose, onPublish, onLaunchGame }: Studio2DP
                       thumbnail: "https://images.unsplash.com/photo-1612287230202-1bf1d85d1bdf?q=80&w=200&auto=format&fit=crop",
                       upvoteRatio: randomUpvotes,
                       activePlayers: randomPlayers,
-                      creator: "GamerProX",
+                      creator: creatorName || "GamerProX",
                       description: pubDesc,
                       category: pubCategory,
                       visits: 1,

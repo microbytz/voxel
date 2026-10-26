@@ -1582,7 +1582,7 @@ export default function Dashboard({
                   <div className="space-y-1">
                     <h4 className="text-xs font-black uppercase tracking-wider text-cyan-400">Your Friend Network is Empty</h4>
                     <p className="text-[11px] text-gray-400 max-w-xl leading-relaxed">
-                      You haven player connections yet! Scroll down to the <strong className="text-zinc-300">Find Players & Send Friend Requests</strong> widget to connect with other developers instantly.
+                      You haven't made any player connections yet! Scroll down to the <strong className="text-zinc-300">Find Players & Send Friend Requests</strong> widget to connect with other developers instantly.
                     </p>
                   </div>
                 </div>

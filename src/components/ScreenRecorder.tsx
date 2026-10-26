@@ -343,7 +343,7 @@ export default function ScreenRecorder() {
               title="Record gameplay or studio creation clip"
             >
               <Video className="w-4 h-4" />
-              <span className="text-[11px] font-extrabold uppercase tracking-wider">Stream Stream</span>
+              <span className="text-[11px] font-extrabold uppercase tracking-wider">Creator Stream</span>
               {recordingState === 'recording' && (
                 <span className="w-2 h-2 bg-white rounded-full animate-ping shrink-0" />
               )}
